@@ -56,37 +56,23 @@ void Data::addToModel(LogModel *model, const QString &appName, const QDateTime &
     const QString &message, const QString &source)
 {
     model->addLog(appName, time, categoryName, priority, message, source);
-
-    /*
-	model->insertRow(0);
-	model->setData(model->index(0), QString("%1 [%2]%3%4: %5").
-		arg(time.toLocalTime().toString(Qt::ISODateWithMs)).
-		arg(priority).
-        arg("").
-        arg("").
-		//arg(logSource ? QString(" {{%1}}").arg(originalSource) : "").
-		//arg(logSourceTab ? QString(" [[%1]]").arg(f_source) : "").
-		arg(message)
-	);
-
-    model->setData(model->index(0), appName, MODELROLE_APP);
-    model->setData(model->index(0), time, MODELROLE_TIME);
-    model->setData(model->index(0), categoryName, MODELROLE_CATEGORY);
-	model->setData(model->index(0), priority, MODELROLE_PRIORITY);
-	model->setData(model->index(0), message, MODELROLE_MESSAGE);
-	model->setData(model->index(0), source, MODELROLE_SOURCE);
-
-    */
 }
 
 void Data::removeApplication(const QString &appName)
 {
-
+    if (_applicationlist.find(appName) == _applicationlist.end()) return;
+    _applicationlist.erase(appName);
+    emit delApplication(appName);
 }
 
 void Data::removeCategory(const QString &appName, const QString &categoryName)
 {
+    auto app = _applicationlist.find(appName);
+    if (app == _applicationlist.end()) return;
 
+    if (app->second->removeCategory(categoryName)) {
+        emit delCategory(appName, categoryName);
+    }
 }
 
 std::shared_ptr<Data_Application> Data::createApplication(const QString &appName)
@@ -132,4 +118,9 @@ std::shared_ptr<Data_Category> Data_Application::findCategory(const QString &cat
 void Data_Application::addCategory(std::shared_ptr<Data_Category> category)
 {
     _categorylist[category->name()] = category;
+}
+
+bool Data_Application::removeCategory(const QString &categoryName)
+{
+    return _categorylist.erase(categoryName) > 0;
 }

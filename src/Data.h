@@ -39,6 +39,7 @@ public:
 
     void addCategory(std::shared_ptr<Data_Category> category);
     std::shared_ptr<Data_Category> findCategory(const QString &categoryName);
+    bool removeCategory(const QString &categoryName);
 private:
     QString _name;
 

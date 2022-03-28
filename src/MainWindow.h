@@ -40,6 +40,7 @@ public:
 
 	void addCategory(std::shared_ptr<Main_Category> category);
 	std::shared_ptr<Main_Category> findCategory(const QString &categoryName);
+	bool removeCategory(const QString &categoryName);
 private:
 	typedef std::map<QString, std::shared_ptr<Main_Category> > categorylist_t;	
 	categorylist_t _categorylist;
@@ -63,6 +64,9 @@ public Q_SLOTS:
     void onDelCategory(const QString &appName, const QString &categoryName);
 
 	void createWindow();
+
+	void applicationTabClose(int index);
+	void categoryTabClose(int index);
 private:
 	QString applicationName(const ApplicationInfo& appInfo);
 	QString applicationName(const QTcpSocket &clientSocket, const QString& connname);

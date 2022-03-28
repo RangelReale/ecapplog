@@ -72,11 +72,28 @@ void MainWindow::createWindow()
 	QTabWidget *tabs = new QTabWidget;
 	tabs->setTabsClosable(true);
 
+	connect(tabs, SIGNAL(tabCloseRequested(int)), this, SLOT(applicationTabClose(int)));
+
 	ads::CDockWidget* dockWindow = new ads::CDockWidget(QString("Window%1").arg(++_dockCount));
 	if (!_rootWindow) _rootWindow = dockWindow;
 	dockWindow->setWidget(tabs);
 	_dockManager->addDockWidget(ads::RightDockWidgetArea, dockWindow);
 	_viewMenu->addAction(dockWindow->toggleViewAction());
+}
+
+void MainWindow::applicationTabClose(int index)
+{
+	QTabWidget *tabs = qobject_cast<QTabWidget*>(sender());
+	_data.removeApplication(tabs->widget(index)->property(PROPERTY_APPNAME).toString());
+	tabs->removeTab(index);
+}
+
+void MainWindow::categoryTabClose(int index)
+{
+	QTabWidget *tabs = qobject_cast<QTabWidget*>(sender());
+	_data.removeCategory(tabs->widget(index)->property(PROPERTY_APPNAME).toString(),
+		tabs->widget(index)->property(PROPERTY_CATEGORYNAME).toString());
+	tabs->removeTab(index);
 }
 
 void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject &jsonData)
@@ -111,26 +128,25 @@ void MainWindow::onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jso
 
 void MainWindow::onNewApplication(const QString &appName)
 {
-	qDebug() << "newApplication" << appName;
-
 	auto app = std::make_shared<Main_Application>(appName, new QTabWidget);
 	_applicationlist[app->name] = app;
 
 	app->categories->setProperty(PROPERTY_APPNAME, appName);
 	app->categories->setTabsClosable(true);
 
+	connect(app->categories, SIGNAL(tabCloseRequested(int)), this, SLOT(categoryTabClose(int)));
+
 	qobject_cast<QTabWidget*>(_rootWindow->widget())->addTab(app->categories, appName);
 }
 
 void MainWindow::onDelApplication(const QString &appName)
 {
-
+	if (_applicationlist.find(appName) == _applicationlist.end()) return;
+	_applicationlist.erase(appName);
 }
 
 void MainWindow::onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model)
 {
-	qDebug() << "newCategory" << appName << categoryName;
-
 	auto findapp = _applicationlist.find(appName);
 	if (findapp == _applicationlist.end()) return;
 	auto app = findapp->second;
@@ -152,7 +168,9 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 
 void MainWindow::onDelCategory(const QString &appName, const QString &categoryName)
 {
-
+	auto app = _applicationlist.find(appName);
+	if (app == _applicationlist.end()) return;	
+	app->second->removeCategory(categoryName);
 }
 
 //
@@ -169,4 +187,9 @@ std::shared_ptr<Main_Category> Main_Application::findCategory(const QString &cat
 	auto find = _categorylist.find(categoryName);
 	if (find == _categorylist.end()) return std::shared_ptr<Main_Category>();
 	return find->second;
+}
+
+bool Main_Application::removeCategory(const QString &categoryName)
+{
+	return _categorylist.erase(categoryName) > 0;
 }

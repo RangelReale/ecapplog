@@ -46,9 +46,9 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
     QRect drawRect = rect;
 
     // time
-    int pixelsTime = option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXX");
+    int pixelsTime = option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXX");
     //QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString(Qt::ISODateWithMs);
-    QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString("yy-MM-dd hh:mm:ss.zzz");
+    QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
     QRect rectTime = drawRect.adjusted(0, 0, pixelsTime - drawRect.width(), 0);
     painter->drawText(rectTime, Qt::AlignCenter, textTime);
     drawRect.adjust(pixelsTime, 0, 0, 0);
