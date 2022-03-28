@@ -27,8 +27,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	_dockManager = new ads::CDockManager(this);
 
-	connect(&_server, SIGNAL(onJsonReceived(const ClientInfo&, quint8, const QJsonObject&)), this, SLOT(onJsonReceived(const ClientInfo&, quint8, const QJsonObject&)));
-	connect(&_server, SIGNAL(onJsonError(const ClientInfo&, const QJsonParseError&)), this, SLOT(onJsonError(const ClientInfo&, const QJsonParseError&)));
+	connect(&_server, SIGNAL(onJsonReceived(const Appinfo&, quint8, const QJsonObject&)), this, SLOT(onJsonReceived(const Appinfo&, quint8, const QJsonObject&)));
+	connect(&_server, SIGNAL(onJsonError(const Appinfo&, const QJsonParseError&)), this, SLOT(onJsonError(const Appinfo&, const QJsonParseError&)));
 	connect(&_server, SIGNAL(onError(const QTcpSocket&, const QString&)), this, SLOT(onError(const QTcpSocket&, const QString&)));
 
 	if (!_server.startServer()) {
@@ -40,21 +40,21 @@ MainWindow::MainWindow(QWidget *parent) :
 	}
 }
 
-void MainWindow::onJsonReceived(const ClientInfo& clientInfo, quint8 cmd, const QJsonObject &jsonData)
+void MainWindow::onJsonReceived(const ApplicationInfo& appinfo, quint8 cmd, const QJsonObject &jsonData)
 {
 	switch (cmd)
 	{
 	case CMD_LOG:
-		onCmdLog(clientInfo, jsonData);
+		onCmdLog(appinfo, jsonData);
 		break;
 	//default:
-		//internalLog(QString("Unknown command: %1").arg(cmd), "ERROR", socketSource(clientInfo));
+		//internalLog(QString("Unknown command: %1").arg(cmd), "ERROR", socketSource(appinfo));
 	}
 }
 
-void MainWindow::onJsonError(const ClientInfo& clientInfo, const QJsonParseError &error)
+void MainWindow::onJsonError(const ApplicationInfo& appinfo, const QJsonParseError &error)
 {
-	//internalLog(QString("JSON parse error: %1").arg(error.errorString()), "ERROR", socketSource(clientInfo));
+	//internalLog(QString("JSON parse error: %1").arg(error.errorString()), "ERROR", socketSource(appinfo));
 }
 
 void MainWindow::onError(const QTcpSocket &clientSocket, const QString &error)
@@ -62,10 +62,10 @@ void MainWindow::onError(const QTcpSocket &clientSocket, const QString &error)
 	//internalLog(QString("Error: %1").arg(error), "ERROR", socketSource(clientSocket, ""));
 }
 
-void MainWindow::onCmdLog(const ClientInfo& clientInfo, const QJsonObject &jsonData)
+void MainWindow::onCmdLog(const ApplicationInfo& appinfo, const QJsonObject &jsonData)
 {
 	QString f_source;
 	if (jsonData.contains("source")) f_source = jsonData.value("source").toString();
 
-	//internalProcessProtocol(socketSource(clientInfo), f_source, jsonData);
+	//internalProcessProtocol(socketSource(appinfo), f_source, jsonData);
 }

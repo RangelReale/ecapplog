@@ -5,40 +5,40 @@
 #include <QJsonDocument>
 
 //
-// ClientInfo
+// ApplicationInfo
 //
 
-ClientInfo::ClientInfo(QTcpSocket* socket) : _socket(socket), _hasbanner(false), _name()
+ApplicationInfo::ApplicationInfo(QTcpSocket* socket) : _socket(socket), _hasbanner(false), _name()
 {
 
 }
 
-ClientInfo::~ClientInfo()
+ApplicationInfo::~ApplicationInfo()
 {
 	delete _socket;
 }
 
-QTcpSocket* ClientInfo::socket() const
+QTcpSocket* ApplicationInfo::socket() const
 {
 	return _socket;
 }
 
-bool ClientInfo::hasBanner() const
+bool ApplicationInfo::hasBanner() const
 {
 	return _hasbanner;
 }
 
-void ClientInfo::setHasBanner()
+void ApplicationInfo::setHasBanner()
 {
 	_hasbanner = true;
 }
 
-QString ClientInfo::getName() const
+QString ApplicationInfo::getName() const
 {
 	return _name;
 }
 
-void ClientInfo::setName(const QString& name)
+void ApplicationInfo::setName(const QString& name)
 {
 	_name = name;
 }
@@ -69,7 +69,7 @@ bool Server::startServer()
 
 void Server::incomingConnection(qintptr socketDescriptor)
 {
-	ClientInfo *ci = new ClientInfo(new QTcpSocket);
+	ApplicationInfo *ci = new ApplicationInfo(new QTcpSocket);
 
 	connect(ci->socket(), SIGNAL(readyRead()), this, SLOT(onReadyRead()));
 	connect(ci->socket(), SIGNAL(disconnected()), this, SLOT(onDisconnected()));
@@ -92,7 +92,7 @@ void Server::onReadyRead()
 		return;
 	}
 
-	ClientInfo* clientInfo = _clientlist.at(idx);
+	ApplicationInfo* clientInfo = _clientlist.at(idx);
 
 	QDataStream in(clientSocket);
 	in.setVersion(QDataStream::Qt_5_5);

@@ -28,11 +28,11 @@ public:
     static MainWindow *instance() { return self; }
 public Q_SLOTS:
 
-	void onJsonReceived(const ClientInfo &clientInfo, quint8 cmd, const QJsonObject &jsonData);
-	void onJsonError(const ClientInfo& clientInfo, const QJsonParseError &error);
+	void onJsonReceived(const ApplicationInfo &appinfo, quint8 cmd, const QJsonObject &jsonData);
+	void onJsonError(const ApplicationInfo& appinfo, const QJsonParseError &error);
 	void onError(const QTcpSocket &clientSocket, const QString &error);
 private:
-	void onCmdLog(const ClientInfo& clientInfo, const QJsonObject &jsonData);
+	void onCmdLog(const ApplicationInfo& appinfo, const QJsonObject &jsonData);
 
 	Server _server;
 
