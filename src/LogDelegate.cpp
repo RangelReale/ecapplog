@@ -47,7 +47,6 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
 
     // time
     int pixelsTime = option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXX");
-    //QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString(Qt::ISODateWithMs);
     QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
     QRect rectTime = drawRect.adjusted(0, 0, pixelsTime - drawRect.width(), 0);
     painter->drawText(rectTime, Qt::AlignCenter, textTime);
@@ -64,3 +63,16 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
     painter->drawText(drawRect, Qt::AlignLeft, index.data(MODELROLE_MESSAGE).toString());
 }
 
+QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    QSize size = QItemDelegate::sizeHint(option, index);
+
+    const int frameHMargin = QApplication::style()->pixelMetric(QStyle::PM_FocusFrameHMargin) + 1;
+
+    int pixelsTime = option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXX");
+    int pixelsPrio = option.fontMetrics.horizontalAdvance(QString("X[%1]X").arg(Priority::PRIO_INFORMATION));
+    int pixelsMessage = option.fontMetrics.horizontalAdvance(index.data(MODELROLE_MESSAGE).toString());
+
+    size.setWidth(pixelsTime + pixelsPrio + pixelsMessage + (frameHMargin * 2) + 100);
+    return size;
+}

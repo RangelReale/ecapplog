@@ -49,6 +49,14 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(&_data, SIGNAL(newCategory(const QString&, const QString &, QAbstractListModel *)), this, SLOT(onNewCategory(const QString&, const QString &, QAbstractListModel *)));
 	connect(&_data, SIGNAL(delCategory(const QString&, const QString &)), this, SLOT(onDelCategory(const QString&, const QString &)));
 
+	// menu: EDIT
+	QMenu *editMenu = new QMenu("&Edit", this);
+	
+	QAction *editClear = new QAction("&Clear", this);
+	connect(editClear, SIGNAL(triggered()), this, SLOT(menuEditClear()));
+	editMenu->addAction(editClear);
+	menuBar()->addMenu(editMenu);
+
 	// menu: VIEW
 	_viewMenu = new QMenu("&View", this);
 	menuBar()->addMenu(_viewMenu);
@@ -99,6 +107,15 @@ void MainWindow::logListDetail(QListView *logs)
 
 	DetailWindow *dwin = new DetailWindow(nullptr, slist.join("\n"), rslist.join("\n"));
 	dwin->show();
+}
+
+void MainWindow::menuEditClear()
+{
+	_data.removeAllApplications();
+	for (auto wd : _dockManager->dockWidgetsMap())
+	{
+		qobject_cast<QTabWidget*>(wd->widget())->clear();
+	}
 }
 
 void MainWindow::applicationTabClose(int index)

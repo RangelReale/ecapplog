@@ -66,6 +66,8 @@ public Q_SLOTS:
 	QTabWidget *createWindow();
 	void logListDetail(QListView *logs);
 
+	void menuEditClear();
+
 	void applicationTabClose(int index);
 	void applicationTabBarContextMenu(const QPoint &point);
 

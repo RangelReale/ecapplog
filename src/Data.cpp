@@ -65,6 +65,15 @@ void Data::removeApplication(const QString &appName)
     emit delApplication(appName);
 }
 
+void Data::removeAllApplications()
+{
+    for (auto app : _applicationlist)
+    {
+        emit delApplication(app.second->name());
+    }
+    _applicationlist.clear();
+}
+
 void Data::removeCategory(const QString &appName, const QString &categoryName)
 {
     auto app = _applicationlist.find(appName);

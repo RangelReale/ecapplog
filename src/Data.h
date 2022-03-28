@@ -59,6 +59,8 @@ public:
 
     void removeApplication(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
+
+    void removeAllApplications();
 signals:
     void newApplication(const QString &appName);
     void delApplication(const QString &appName);
