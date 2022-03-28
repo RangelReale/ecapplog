@@ -63,10 +63,13 @@ public Q_SLOTS:
     void onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void onDelCategory(const QString &appName, const QString &categoryName);
 
-	void createWindow();
+	QTabWidget *createWindow();
 
 	void applicationTabClose(int index);
+	void applicationTabBarContextMenu(const QPoint &point);
+
 	void categoryTabClose(int index);
+	void categoryTabBarContextMenu(const QPoint &point);
 private:
 	QString applicationName(const ApplicationInfo& appInfo);
 	QString applicationName(const QTcpSocket &clientSocket, const QString& connname);

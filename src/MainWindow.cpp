@@ -67,18 +67,22 @@ QString MainWindow::applicationName(const QTcpSocket &clientSocket, const QStrin
 	return connname;
 }
 
-void MainWindow::createWindow()
+QTabWidget *MainWindow::createWindow()
 {
 	QTabWidget *tabs = new QTabWidget;
 	tabs->setTabsClosable(true);
+	tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	connect(tabs, SIGNAL(tabCloseRequested(int)), this, SLOT(applicationTabClose(int)));
+	connect(tabs->tabBar(), SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(applicationTabBarContextMenu(const QPoint &)));
 
 	ads::CDockWidget* dockWindow = new ads::CDockWidget(QString("Window%1").arg(++_dockCount));
 	if (!_rootWindow) _rootWindow = dockWindow;
 	dockWindow->setWidget(tabs);
 	_dockManager->addDockWidget(ads::RightDockWidgetArea, dockWindow);
 	_viewMenu->addAction(dockWindow->toggleViewAction());
+
+	return tabs;
 }
 
 void MainWindow::applicationTabClose(int index)
@@ -88,12 +92,59 @@ void MainWindow::applicationTabClose(int index)
 	tabs->removeTab(index);
 }
 
+void MainWindow::applicationTabBarContextMenu(const QPoint &point)
+{
+	if (point.isNull())
+		return;
+ 
+	QTabBar *tabBar = qobject_cast<QTabBar *>(sender());
+	QTabWidget *sourceTabWidget = qobject_cast<QTabWidget*>(tabBar->parentWidget());
+
+	int tabIndex = tabBar->tabAt(point);
+	QMenu menu(this);
+	QAction *newWindow = menu.addAction(tr("Move to new window"));
+	menu.addSeparator();
+	QMenu moveTo(tr("Move to..."), this);
+	for (auto key : _dockManager->dockWidgetsMap().keys())
+	{
+		moveTo.addAction(key);
+	}
+	menu.addMenu(&moveTo);
+
+	QAction *selectedItem = menu.exec(tabBar->mapToGlobal(point));
+	if (selectedItem)
+	{
+		ads::CDockWidget *w = nullptr;
+		QTabWidget *targetTabWidget = nullptr;
+
+		if (selectedItem == newWindow)
+		{
+			targetTabWidget = createWindow();
+		}
+		else
+		{
+			ads::CDockWidget *w = _dockManager->findDockWidget(selectedItem->text());
+			if (w) targetTabWidget = qobject_cast<QTabWidget*>(w->widget());
+		}
+
+		if (targetTabWidget && sourceTabWidget)
+		{
+			targetTabWidget->addTab(sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
+		}
+	}
+}
+
 void MainWindow::categoryTabClose(int index)
 {
 	QTabWidget *tabs = qobject_cast<QTabWidget*>(sender());
 	_data.removeCategory(tabs->widget(index)->property(PROPERTY_APPNAME).toString(),
 		tabs->widget(index)->property(PROPERTY_CATEGORYNAME).toString());
 	tabs->removeTab(index);
+}
+
+void MainWindow::categoryTabBarContextMenu(const QPoint &point)
+{
+
 }
 
 void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject &jsonData)
@@ -133,8 +184,10 @@ void MainWindow::onNewApplication(const QString &appName)
 
 	app->categories->setProperty(PROPERTY_APPNAME, appName);
 	app->categories->setTabsClosable(true);
+	app->categories->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	connect(app->categories, SIGNAL(tabCloseRequested(int)), this, SLOT(categoryTabClose(int)));
+	connect(app->categories->tabBar(), SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(categoryTabBarContextMenu(const QPoint &)));
 
 	qobject_cast<QTabWidget*>(_rootWindow->widget())->addTab(app->categories, appName);
 }
