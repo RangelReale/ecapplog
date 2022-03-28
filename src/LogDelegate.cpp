@@ -1,4 +1,6 @@
 #include "LogDelegate.h"
+#include "LogModel.h"
+#include "Config.h"
 
 #include <QPainter>
 #include <QStyle>
@@ -41,15 +43,24 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
         painter->setPen(option.palette.color(cg, QPalette::Text));
     }
 
-    // if (text.isEmpty())
-    //     return;
+    QRect drawRect = rect;
 
-    int pixelsWide = option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXXXXX");
+    // time
+    int pixelsTime = option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXX");
+    //QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString(Qt::ISODateWithMs);
+    QString textTime = index.data(MODELROLE_TIME).toDateTime().toLocalTime().toString("yy-MM-dd hh:mm:ss.zzz");
+    QRect rectTime = drawRect.adjusted(0, 0, pixelsTime - drawRect.width(), 0);
+    painter->drawText(rectTime, Qt::AlignCenter, textTime);
+    drawRect.adjust(pixelsTime, 0, 0, 0);
 
-    QString text = index.data(Qt::DisplayRole).toString();
+    // priority
+    int pixelsPrio = option.fontMetrics.horizontalAdvance(QString("X[%1]X").arg(Priority::PRIO_INFORMATION));
+    QString textPrio = QString("[%1]").arg(index.data(MODELROLE_PRIORITY).toString());
+    QRect rectPrio = drawRect.adjusted(0, 0, pixelsPrio - drawRect.width(), 0);
+    painter->drawText(rectPrio, Qt::AlignCenter, textPrio);
+    drawRect.adjust(pixelsPrio, 0, 0, 0);
 
-    painter->drawText(rect, option.displayAlignment, text);
-
-    //QApplication::style()->drawItemText(painter, rect, option.displayAlignment, QApplication::palette(), true, text);
+    // message
+    painter->drawText(drawRect, Qt::AlignLeft, index.data(MODELROLE_MESSAGE).toString());
 }
 
