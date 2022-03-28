@@ -32,8 +32,8 @@ QColor LogModelItem::calcPriorityColor() const
 
 QString LogModelItem::getDisplayMessage() const
 {
-	return QString("%1 [%2]%3%4: %5").
-		arg(_time.toLocalTime().toString(Qt::ISODateWithMs)).
+	return QString("%1 [%2]%3%4 %5").
+		arg(_time.toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).
 		arg(_priority).
         arg("").
         arg("").
@@ -99,7 +99,7 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
         return lst.at(index.row())->getPriority();
     } else if (role == MODELROLE_MESSAGE) {
         return lst.at(index.row())->getMessage();
-    } else if (role == MODELROLE_MESSAGE) {
+    } else if (role == MODELROLE_SOURCE) {
         return lst.at(index.row())->getSource();
     }
 

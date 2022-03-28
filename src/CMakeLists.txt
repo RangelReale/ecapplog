@@ -35,6 +35,8 @@ set(SRCS
 	main.cpp
 	MainWindow.h
 	MainWindow.cpp
+	DetailWindow.h
+	DetailWindow.cpp
 	Config.h
 	Config.cpp
 	Server.h

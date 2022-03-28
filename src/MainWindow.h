@@ -64,15 +64,20 @@ public Q_SLOTS:
     void onDelCategory(const QString &appName, const QString &categoryName);
 
 	QTabWidget *createWindow();
+	void logListDetail(QListView *logs);
 
 	void applicationTabClose(int index);
 	void applicationTabBarContextMenu(const QPoint &point);
 
 	void categoryTabClose(int index);
 	void categoryTabBarContextMenu(const QPoint &point);
+
+	void logListContextMenu(const QPoint &point);
+	void logListDoubleClicked(const QModelIndex&);
 private:
 	QString applicationName(const ApplicationInfo& appInfo);
 	QString applicationName(const QTcpSocket &clientSocket, const QString& connname);
+	QString formatJSON(const QString &json);
 
 	void onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jsonData);
 

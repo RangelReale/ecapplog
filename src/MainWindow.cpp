@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "Config.h"
 #include "LogDelegate.h"
+#include "DetailWindow.h"
 
 #include <QApplication>
 #include <QStyle>
@@ -13,6 +14,7 @@
 #include <QSettings>
 #include <QVariant>
 #include <QMetaType>
+#include <QClipboard>
 
 MainWindow *MainWindow::self;
 
@@ -85,6 +87,20 @@ QTabWidget *MainWindow::createWindow()
 	return tabs;
 }
 
+void MainWindow::logListDetail(QListView *logs)
+{
+	QStringList slist;
+	QStringList rslist;
+	foreach(const QModelIndex &index,
+		logs->selectionModel()->selectedIndexes()) {
+		slist.append(index.data(Qt::DisplayRole).toString());
+		rslist.append(formatJSON(index.data(MODELROLE_SOURCE).toString()));
+	}
+
+	DetailWindow *dwin = new DetailWindow(nullptr, slist.join("\n"), rslist.join("\n"));
+	dwin->show();
+}
+
 void MainWindow::applicationTabClose(int index)
 {
 	QTabWidget *tabs = qobject_cast<QTabWidget*>(sender());
@@ -145,6 +161,51 @@ void MainWindow::categoryTabClose(int index)
 void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 {
 
+}
+
+void MainWindow::logListContextMenu(const QPoint &point)
+{
+	QListView *list = qobject_cast<QListView*>(sender());	
+
+	QPoint globalPos = list->mapToGlobal(point);
+
+	QMenu myMenu;
+	QAction *acopy = myMenu.addAction("&Copy to clipboard");
+	QAction *acopyrs = myMenu.addAction("Copy &source to clipboard");
+	QAction *aview = myMenu.addAction("&Detail...");
+
+	QAction* selectedItem = myMenu.exec(globalPos);
+	if (selectedItem)
+	{
+		if (selectedItem == acopy) 
+		{
+			QStringList slist;
+			foreach(const QModelIndex &index,
+				list->selectionModel()->selectedIndexes()) {
+				slist.append(index.data(Qt::DisplayRole).toString());
+			}
+			QGuiApplication::clipboard()->setText(slist.join("\n"));
+		} 
+		else if (selectedItem == acopyrs) 
+		{
+			QStringList slist;
+			foreach(const QModelIndex &index,
+				list->selectionModel()->selectedIndexes()) {
+				slist.append(index.data(MODELROLE_SOURCE).toString());
+			}
+			QGuiApplication::clipboard()->setText(slist.join("\n"));
+		} 
+		else if (selectedItem == aview)
+		{
+			logListDetail(list);
+		}
+	}
+}
+
+void MainWindow::logListDoubleClicked(const QModelIndex &)
+{
+	QListView *list = qobject_cast<QListView*>(sender());
+	logListDetail(list);
 }
 
 void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject &jsonData)
@@ -216,6 +277,11 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 
 	category->logs->setModel(model);
 
+	connect(category->logs, SIGNAL(customContextMenuRequested(const QPoint&)),
+		this, SLOT(logListContextMenu(const QPoint&)));
+	connect(category->logs, SIGNAL(doubleClicked(const QModelIndex&)),
+		this, SLOT(logListDoubleClicked(const QModelIndex&)));
+
 	app->categories->addTab(category->logs, categoryName);
 }
 
@@ -225,6 +291,14 @@ void MainWindow::onDelCategory(const QString &appName, const QString &categoryNa
 	if (app == _applicationlist.end()) return;	
 	app->second->removeCategory(categoryName);
 }
+
+QString MainWindow::formatJSON(const QString &json)
+{
+	QJsonDocument doc = QJsonDocument::fromJson(json.toLocal8Bit());
+	if (doc.isNull()) return json;
+	return doc.toJson(QJsonDocument::Indented);
+}
+
 
 //
 // Main_Application
@@ -246,3 +320,4 @@ bool Main_Application::removeCategory(const QString &categoryName)
 {
 	return _categorylist.erase(categoryName) > 0;
 }
+

@@ -13,7 +13,7 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 	if (jsonData.contains("time")) f_time = jsonData.value("time").toString();
 	if (jsonData.contains("priority")) f_priority = jsonData.value("priority").toString();
 	if (jsonData.contains("message")) f_message = jsonData.value("message").toString();
-	if (jsonData.contains("source")) f_source = jsonData.value("f_source").toString();
+	if (jsonData.contains("source")) f_source = jsonData.value("source").toString();
     QDateTime time;
 	if (!f_time.isEmpty()) {
 		// parse time
