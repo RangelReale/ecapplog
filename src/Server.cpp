@@ -92,7 +92,7 @@ void Server::onReadyRead()
 		return;
 	}
 
-	ApplicationInfo* clientInfo = _clientlist.at(idx);
+	ApplicationInfo* appInfo = _clientlist.at(idx);
 
 	QDataStream in(clientSocket);
 	in.setVersion(QDataStream::Qt_5_5);
@@ -115,7 +115,7 @@ void Server::onReadyRead()
 
 		if (cmd == CMD_BANNER)
 		{
-			if (clientInfo->hasBanner() || !data.startsWith("ECAPPLOG "))
+			if (appInfo->hasBanner() || !data.startsWith("ECAPPLOG "))
 			{
 				emit onError(*clientSocket, "Invalid banner received, disconnecting");
 				clientSocket->close();
@@ -125,20 +125,20 @@ void Server::onReadyRead()
 
 			QString connname = QString::fromUtf8(data);
 			if (!connname.isEmpty()) {
-				clientInfo->setName(QString("%1:%2").arg(connname).arg(++_seq));
+				appInfo->setName(QString("%1:%2").arg(connname).arg(++_seq));
 			}
-			clientInfo->setHasBanner();
+			appInfo->setHasBanner();
 		} else {
 			QJsonParseError parseError;
 			const QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
 			if (parseError.error == QJsonParseError::NoError) {
 				if (jsonDoc.isObject()) {
-					emit onJsonReceived(*clientInfo, cmd, jsonDoc.object());
+					emit onJsonReceived(*appInfo, cmd, jsonDoc.object());
 				}
 			}
 			else
 			{
-				emit onJsonError(*clientInfo, parseError);
+				emit onJsonError(*appInfo, parseError);
 			}
 		}
 	}

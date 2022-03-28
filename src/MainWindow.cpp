@@ -40,32 +40,44 @@ MainWindow::MainWindow(QWidget *parent) :
 	}
 }
 
-void MainWindow::onJsonReceived(const ApplicationInfo& appinfo, quint8 cmd, const QJsonObject &jsonData)
+QString MainWindow::applicationName(const ApplicationInfo& appInfo)
+{
+	return applicationName(*appInfo.socket(), appInfo.getName());
+}
+
+QString MainWindow::applicationName(const QTcpSocket &clientSocket, const QString& connname)
+{
+	if (connname.isEmpty())
+		return QString("%1:%2").arg(clientSocket.peerAddress().toString()).arg(clientSocket.peerPort());
+	return connname;
+}
+
+void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject &jsonData)
 {
 	switch (cmd)
 	{
 	case CMD_LOG:
-		onCmdLog(appinfo, jsonData);
+		_data.log(applicationName(appInfo), jsonData);
 		break;
-	//default:
-		//internalLog(QString("Unknown command: %1").arg(cmd), "ERROR", socketSource(appinfo));
+	default:
+		_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+			QString("Unknown command: %1").arg(cmd));
 	}
 }
 
-void MainWindow::onJsonError(const ApplicationInfo& appinfo, const QJsonParseError &error)
+void MainWindow::onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error)
 {
-	//internalLog(QString("JSON parse error: %1").arg(error.errorString()), "ERROR", socketSource(appinfo));
+		_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+			QString("JSON parse error: %1").arg(error.errorString()));
 }
 
 void MainWindow::onError(const QTcpSocket &clientSocket, const QString &error)
 {
-	//internalLog(QString("Error: %1").arg(error), "ERROR", socketSource(clientSocket, ""));
+	_data.log(applicationName(clientSocket, ""), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+		QString("Error: %1").arg(error));
 }
 
-void MainWindow::onCmdLog(const ApplicationInfo& appinfo, const QJsonObject &jsonData)
+void MainWindow::onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jsonData)
 {
-	QString f_source;
-	if (jsonData.contains("source")) f_source = jsonData.value("source").toString();
-
-	//internalProcessProtocol(socketSource(appinfo), f_source, jsonData);
+	_data.log(applicationName(appInfo), jsonData);
 }

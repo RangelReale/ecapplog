@@ -39,6 +39,8 @@ set(SRCS
 	Config.cpp
 	Server.h
 	Server.cpp
+	Data.h
+	Data.cpp
 )
 
 get_target_property(_qmake_executable Qt6::qmake IMPORTED_LOCATION)
