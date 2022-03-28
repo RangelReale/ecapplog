@@ -29,6 +29,8 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source)
 {
+    //qDebug() << appName << time.toString(Qt::ISODateWithMs) << categoryName << priority << message;
+
     // find application
     std::shared_ptr<Data_Application> app;
     auto findapp = _applicationlist.find(appName);
@@ -46,7 +48,35 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         category = createCategory(app, categoryName);
     }
 
-    qDebug() << appName << time.toString(Qt::ISODateWithMs) << categoryName << priority << message;
+    addToModel(category->model(), appName, time, categoryName, priority, message, source);
+}
+
+
+void Data::addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    const QString &message, const QString &source)
+{
+    model->addLog(appName, time, categoryName, priority, message, source);
+
+    /*
+	model->insertRow(0);
+	model->setData(model->index(0), QString("%1 [%2]%3%4: %5").
+		arg(time.toLocalTime().toString(Qt::ISODateWithMs)).
+		arg(priority).
+        arg("").
+        arg("").
+		//arg(logSource ? QString(" {{%1}}").arg(originalSource) : "").
+		//arg(logSourceTab ? QString(" [[%1]]").arg(f_source) : "").
+		arg(message)
+	);
+
+    model->setData(model->index(0), appName, MODELROLE_APP);
+    model->setData(model->index(0), time, MODELROLE_TIME);
+    model->setData(model->index(0), categoryName, MODELROLE_CATEGORY);
+	model->setData(model->index(0), priority, MODELROLE_PRIORITY);
+	model->setData(model->index(0), message, MODELROLE_MESSAGE);
+	model->setData(model->index(0), source, MODELROLE_SOURCE);
+
+    */
 }
 
 void Data::removeApplication(const QString &appName)
@@ -81,7 +111,7 @@ std::shared_ptr<Data_Category> Data::createCategory(std::shared_ptr<Data_Applica
 
 Data_Category::Data_Category(const QString &name) : _name(name), _model() {}
 
-QAbstractListModel *Data_Category::model()
+LogModel *Data_Category::model()
 {
     return &_model;
 }

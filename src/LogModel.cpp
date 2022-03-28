@@ -6,6 +6,13 @@
 //
 // LogModelItem
 //
+LogModelItem::LogModelItem(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    const QString &message, const QString &source) : _app(appName), _time(time), _category(categoryName), _priority(priority),
+        _message(message), _source(source)
+{
+    _prioritycolor = calcPriorityColor();
+}
+
 QColor LogModelItem::calcPriorityColor() const
 {
 	if (_priority == Priority::PRIO_TRACE || _priority == Priority::PRIO_DEBUG)
@@ -23,6 +30,18 @@ QColor LogModelItem::calcPriorityColor() const
 	return QColor(0, 0, 0);
 }
 
+QString LogModelItem::getDisplayMessage() const
+{
+	return QString("%1 [%2]%3%4: %5").
+		arg(_time.toLocalTime().toString(Qt::ISODateWithMs)).
+		arg(_priority).
+        arg("").
+        arg("").
+		//arg(logSource ? QString(" {{%1}}").arg(originalSource) : "").
+		//arg(logSourceTab ? QString(" [[%1]]").arg(f_source) : "").
+		arg(_message);
+}
+
 //
 // LogModel
 //
@@ -30,6 +49,26 @@ LogModel::LogModel(QObject *parent)
     : QAbstractListModel(parent)
 {
 
+}
+
+void LogModel::addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    const QString &message, const QString &source)
+{
+    beginInsertRows(QModelIndex(), 0, 1);
+    lst.insert(0, std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source));
+    endInsertRows();
+}
+
+void LogModel::removeLog(int amount)
+{
+    if (amount > lst.count()) amount = lst.count();
+
+    beginRemoveRows(QModelIndex(), lst.count()-amount, lst.count()-1);
+
+    for (int r = 0; r < amount; ++r)
+        lst.removeLast();
+
+    endRemoveRows();
 }
 
 int LogModel::rowCount(const QModelIndex &parent) const
@@ -42,21 +81,31 @@ int LogModel::rowCount(const QModelIndex &parent) const
 
 QVariant LogModel::data(const QModelIndex &index, int role) const
 {
-    if (index.row() < 0 || index.row() >= lst.size())
+    if (index.row() < 0 || index.row() >= lst.size()) {
         return QVariant();
-
-    if (role == Qt::DisplayRole)
-		return lst.at(index.row())->getMessage();
-
-	if (role == Qt::UserRole) {
-        return lst.at(index.row())->getPriority();
     }
-	if (role == Qt::UserRole + 1) {
+
+    if (role == Qt::DisplayRole) {
+		return lst.at(index.row())->getDisplayMessage();
+    }
+
+	if (role == MODELROLE_APP) {
+        return lst.at(index.row())->getApp();
+    } else if (role == MODELROLE_TIME) {
+        return lst.at(index.row())->getTime();
+    } else if (role == MODELROLE_CATEGORY) {
+        return lst.at(index.row())->getCategory();
+    } else if (role == MODELROLE_PRIORITY) {
+        return lst.at(index.row())->getPriority();
+    } else if (role == MODELROLE_MESSAGE) {
+        return lst.at(index.row())->getMessage();
+    } else if (role == MODELROLE_MESSAGE) {
         return lst.at(index.row())->getSource();
     }
 
-	if (role == Qt::ForegroundRole)
+	if (role == Qt::ForegroundRole) {
 		return lst.at(index.row())->priorityColor();
+    }
 
 	// if (role == Qt::BackgroundRole && lst.at(index.row())->getHighlight())
 	// 	return QColor((QRandomGenerator::global()->generate() %4)+244, (QRandomGenerator::global()->generate() %4)+244, (QRandomGenerator::global()->generate() %4)+244);
@@ -70,69 +119,6 @@ Qt::ItemFlags LogModel::flags(const QModelIndex &index) const
         return QAbstractItemModel::flags(index) | Qt::ItemIsDropEnabled;
 
     return QAbstractItemModel::flags(index) | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
-}
-
-bool LogModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    if (index.row() >= 0 && index.row() < lst.size())
-	{
-		if (role == Qt::EditRole)
-		{
-			lst.value(index.row())->setMessage(value.toString());
-			//lst.value(index.row())->setHighlight(isHighlight(value.toString()));
-		}
-		else if (role == Qt::UserRole) {
-            lst.value(index.row())->setPriority(value.toString());
-		}
-		else if (role == Qt::UserRole + 1) {
-            lst.value(index.row())->setSource(value.toString());
-        }
-
-        emit dataChanged(index, index);
-        return true;
-    }
-    return false;
-}
-
-bool LogModel::insertRows(int row, int count, const QModelIndex &parent)
-{
-    if (count < 1 || row < 0 || row > rowCount(parent))
-        return false;
-
-    beginInsertRows(QModelIndex(), row, row + count - 1);
-
-    for (int r = 0; r < count; ++r)
-        lst.insert(row, std::make_shared<LogModelItem>());
-
-    endInsertRows();
-
-    return true;
-}
-
-/*!
-    Removes \a count rows from the model, beginning at the given \a row.
-
-    The \a parent index of the rows is optional and is only used for
-    consistency with QAbstractItemModel. By default, a null index is
-    specified, indicating that the rows are removed in the top level of
-    the model.
-
-    \sa QAbstractItemModel::removeRows()
-*/
-
-bool LogModel::removeRows(int row, int count, const QModelIndex &parent)
-{
-    if (count <= 0 || row < 0 || (row + count) > rowCount(parent))
-        return false;
-
-    beginRemoveRows(QModelIndex(), row, row + count - 1);
-
-    for (int r = 0; r < count; ++r)
-        lst.removeAt(row);
-
-    endRemoveRows();
-
-    return true;
 }
 
 Qt::DropActions LogModel::supportedDropActions() const

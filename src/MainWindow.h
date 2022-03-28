@@ -19,6 +19,31 @@
 #include <string>
 #include <map>
 
+class Main_Category : public QObject
+{
+	Q_OBJECT
+public:
+	Main_Category(const QString &name, QListView *logs) : name(name), logs(logs) {}
+
+	QString name;
+	QListView *logs;
+};
+
+class Main_Application : public QObject
+{
+	Q_OBJECT
+public:
+	Main_Application(const QString &name, QTabWidget *categories) : name(name), categories(categories), _categorylist() {}
+
+	QString name;
+	QTabWidget *categories;
+
+	void addCategory(std::shared_ptr<Main_Category> category);
+	std::shared_ptr<Main_Category> findCategory(const QString &categoryName);
+private:
+	typedef std::map<QString, std::shared_ptr<Main_Category> > categorylist_t;	
+	categorylist_t _categorylist;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -28,10 +53,16 @@ public:
 
     static MainWindow *instance() { return self; }
 public Q_SLOTS:
-
 	void onJsonReceived(const ApplicationInfo &appInfo, quint8 cmd, const QJsonObject &jsonData);
 	void onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error);
 	void onError(const QTcpSocket &clientSocket, const QString &error);
+
+    void onNewApplication(const QString &appName);
+    void onDelApplication(const QString &appName);
+    void onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
+    void onDelCategory(const QString &appName, const QString &categoryName);
+
+	void createWindow();
 private:
 	QString applicationName(const ApplicationInfo& appInfo);
 	QString applicationName(const QTcpSocket &clientSocket, const QString& connname);
@@ -40,7 +71,13 @@ private:
 
 	Server _server;
 	Data _data;
+	int _dockCount;
+
+	typedef std::map<QString, std::shared_ptr<Main_Application> > applicationlist_t;
+	applicationlist_t _applicationlist;
 
 	static MainWindow *self;
 	ads::CDockManager* _dockManager;
+	ads::CDockWidget* _rootWindow;
+	QMenu *_viewMenu;
 };

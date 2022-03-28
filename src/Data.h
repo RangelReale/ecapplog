@@ -23,7 +23,7 @@ public:
     Data_Category(const QString &name);
 
     const QString &name() { return _name; }
-    QAbstractListModel *model();
+    LogModel *model();
 private:
     QString _name;
     LogModel _model;
@@ -64,6 +64,9 @@ signals:
     void newCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void delCategory(const QString &appName, const QString &categoryName);
 private:
+    void addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+        const QString &message, const QString &source);
+
     std::shared_ptr<Data_Application> createApplication(const QString &appName);
     std::shared_ptr<Data_Category> createCategory(std::shared_ptr<Data_Application>, const QString &categoryName);
 

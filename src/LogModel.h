@@ -7,28 +7,41 @@
 #define NOMINMAX
 
 #include <QAbstractListModel>
+#include <QDateTime>
+
+#define MODELROLE_APP           Qt::UserRole + 0
+#define MODELROLE_TIME          Qt::UserRole + 1
+#define MODELROLE_CATEGORY      Qt::UserRole + 2
+#define MODELROLE_PRIORITY      Qt::UserRole + 3
+#define MODELROLE_MESSAGE       Qt::UserRole + 4
+#define MODELROLE_SOURCE        Qt::UserRole + 5
 
 class LogModelItem
 {
 public:
-	LogModelItem() {}
+	LogModelItem(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    	const QString &message, const QString &source);
 
-	const QString &getMessage() const { return _message; }
+	const QString &getApp() const { return _app; }
+	const QDateTime &getTime() const { return _time; }
+	const QString &getCategory() const { return _category; }
 	const QString &getPriority() const { return _priority; }
+	const QString &getMessage() const { return _message; }
 	const QString &getSource() const { return _source; }
 
-	void setMessage(const QString &message) { _message = message; }
-	void setPriority(const QString &priority) { _priority = priority; _prioritycolor = calcPriorityColor(); }
-	void setSource(const QString &source) { _source = source; }
+	QString getDisplayMessage() const;
 
 	QColor priorityColor() const { return _prioritycolor; }
 private:
 	QColor calcPriorityColor() const;
 
-	QString _message;
+	QString _app;
+	QDateTime _time;
+	QString _category;
 	QString _priority;
-	QColor _prioritycolor;
+	QString _message;
 	QString _source;
+	QColor _prioritycolor;
 };
 
 class LogModel : public QAbstractListModel
@@ -38,15 +51,15 @@ public:
 public:
     explicit LogModel(QObject *parent = 0);
 
+	void addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    	const QString &message, const QString &source);
+	void removeLog(int amount);
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 
     QVariant data(const QModelIndex &index, int role) const;
-    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
 
     Qt::ItemFlags flags(const QModelIndex &index) const;
-
-    bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex());
-    bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
 
     Qt::DropActions supportedDropActions() const;
 private:

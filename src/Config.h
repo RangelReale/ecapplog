@@ -30,3 +30,6 @@ enum Command
 	CMD_BANNER		= 99,
 	CMD_LOG			= 0,
 };
+
+#define PROPERTY_APPNAME "ecapplog_application"
+#define PROPERTY_CATEGORYNAME "ecapplog_category"
