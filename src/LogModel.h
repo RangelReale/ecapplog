@@ -15,12 +15,15 @@
 #define MODELROLE_PRIORITY      Qt::UserRole + 3
 #define MODELROLE_MESSAGE       Qt::UserRole + 4
 #define MODELROLE_SOURCE        Qt::UserRole + 5
+#define MODELROLE_ALTAPP        Qt::UserRole + 10
+#define MODELROLE_ALTCATEGORY   Qt::UserRole + 11
 
 class LogModelItem
 {
 public:
 	LogModelItem(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    	const QString &message, const QString &source);
+    	const QString &message, const QString &source, const QString &altApp = QString(), 
+		const QString &altCategory = QString());
 
 	const QString &getApp() const { return _app; }
 	const QDateTime &getTime() const { return _time; }
@@ -28,6 +31,8 @@ public:
 	const QString &getPriority() const { return _priority; }
 	const QString &getMessage() const { return _message; }
 	const QString &getSource() const { return _source; }
+	const QString &getAltApp() const { return _altApp; }
+	const QString &getAltCategory() const { return _altCategory; }
 
 	QString getDisplayMessage() const;
 
@@ -41,6 +46,8 @@ private:
 	QString _priority;
 	QString _message;
 	QString _source;
+	QString _altApp;
+	QString _altCategory;
 	QColor _prioritycolor;
 };
 
@@ -52,7 +59,7 @@ public:
     explicit LogModel(QObject *parent = 0);
 
 	void addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    	const QString &message, const QString &source);
+    	const QString &message, const QString &source, const QString &altApp, const QString &altCategory);
 	void removeLog(int amount);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;

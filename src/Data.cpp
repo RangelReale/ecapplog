@@ -29,6 +29,16 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source)
 {
+    internalLog(appName, time, categoryName, priority, message, source);
+    if (Priority::isErrorOrWarning(priority))
+    {
+        internalLog(appName, time, "ERROR", priority, message, source, "", categoryName);
+    }
+}
+
+void Data::internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory)
+{
     //qDebug() << appName << time.toString(Qt::ISODateWithMs) << categoryName << priority << message;
 
     // find application
@@ -48,14 +58,14 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         category = createCategory(app, categoryName);
     }
 
-    addToModel(category->model(), appName, time, categoryName, priority, message, source);
+    addToModel(category->model(), appName, time, categoryName, priority, message, source, altApp, altCategory);
 }
 
 
 void Data::addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source)
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory)
 {
-    model->addLog(appName, time, categoryName, priority, message, source);
+    model->addLog(appName, time, categoryName, priority, message, source, altApp, altCategory);
     emit logAmount(appName, categoryName, model->rowCount(QModelIndex()));
 }
 

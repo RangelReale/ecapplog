@@ -68,8 +68,11 @@ signals:
     void delCategory(const QString &appName, const QString &categoryName);
     void logAmount(const QString &appName, const QString &categoryName, int amount);
 private:
+    void internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+        const QString &message, const QString &source = QString(), const QString &altApp = QString(), 
+        const QString &altCategory = QString());
     void addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-        const QString &message, const QString &source);
+        const QString &message, const QString &source, const QString &altApp, const QString &altCategory);
 
     std::shared_ptr<Data_Application> createApplication(const QString &appName);
     std::shared_ptr<Data_Category> createCategory(std::shared_ptr<Data_Application>, const QString &categoryName);

@@ -7,8 +7,9 @@
 // LogModelItem
 //
 LogModelItem::LogModelItem(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source) : _app(appName), _time(time), _category(categoryName), _priority(priority),
-        _message(message), _source(source)
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory) : 
+    _app(appName), _time(time), _category(categoryName), _priority(priority), _message(message), 
+    _source(source), _altApp(altApp), _altCategory(altCategory)
 {
     _prioritycolor = calcPriorityColor();
 }
@@ -52,10 +53,11 @@ LogModel::LogModel(QObject *parent)
 }
 
 void LogModel::addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source)
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory)
 {
     beginInsertRows(QModelIndex(), 0, 1);
-    lst.insert(0, std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source));
+    lst.insert(0, std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source, 
+        altApp, altCategory));
     endInsertRows();
 }
 
@@ -101,6 +103,10 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
         return lst.at(index.row())->getMessage();
     } else if (role == MODELROLE_SOURCE) {
         return lst.at(index.row())->getSource();
+    } else if (role == MODELROLE_ALTAPP) {
+        return lst.at(index.row())->getAltApp();
+    } else if (role == MODELROLE_ALTCATEGORY) {
+        return lst.at(index.row())->getAltCategory();
     }
 
 	if (role == Qt::ForegroundRole) {
