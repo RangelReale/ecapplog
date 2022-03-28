@@ -27,8 +27,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	_dockManager = new ads::CDockManager(this);
 
-	connect(&_server, SIGNAL(onJsonReceived(const Appinfo&, quint8, const QJsonObject&)), this, SLOT(onJsonReceived(const Appinfo&, quint8, const QJsonObject&)));
-	connect(&_server, SIGNAL(onJsonError(const Appinfo&, const QJsonParseError&)), this, SLOT(onJsonError(const Appinfo&, const QJsonParseError&)));
+	connect(&_server, SIGNAL(onJsonReceived(const ApplicationInfo&, quint8, const QJsonObject&)), this, SLOT(onJsonReceived(const ApplicationInfo&, quint8, const QJsonObject&)));
+	connect(&_server, SIGNAL(onJsonError(const ApplicationInfo&, const QJsonParseError&)), this, SLOT(onJsonError(const ApplicationInfo&, const QJsonParseError&)));
 	connect(&_server, SIGNAL(onError(const QTcpSocket&, const QString&)), this, SLOT(onError(const QTcpSocket&, const QString&)));
 
 	if (!_server.startServer()) {
@@ -67,8 +67,8 @@ void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, cons
 
 void MainWindow::onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error)
 {
-		_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
-			QString("JSON parse error: %1").arg(error.errorString()));
+	_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+		QString("JSON parse error: %1").arg(error.errorString()));
 }
 
 void MainWindow::onError(const QTcpSocket &clientSocket, const QString &error)

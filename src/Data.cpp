@@ -1,6 +1,6 @@
 #include "Data.h"
 
-Data::Data()
+Data::Data() : _applicationlist()
 {
 
 }
@@ -26,8 +26,80 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
     log(appName, time, f_category, f_priority, f_message, f_source);
 }
 
-void Data::log(const QString &appName, const QDateTime &time, const QString &category, const QString &priority,
+void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source)
 {
+    // find application
+    std::shared_ptr<Data_Application> app;
+    auto findapp = _applicationlist.find(appName);
+    if (findapp == _applicationlist.end())
+    {
+        app = createApplication(appName);
+    }
+    else
+        app = findapp->second;
 
+    // find category
+    auto category = app->findCategory(categoryName);
+    if (!category)
+    {
+        category = createCategory(app, categoryName);
+    }
+
+    qDebug() << appName << time.toString(Qt::ISODateWithMs) << categoryName << priority << message;
+}
+
+void Data::removeApplication(const QString &appName)
+{
+
+}
+
+void Data::removeCategory(const QString &appName, const QString &categoryName)
+{
+
+}
+
+std::shared_ptr<Data_Application> Data::createApplication(const QString &appName)
+{
+    auto app = std::make_shared<Data_Application>(appName);
+    _applicationlist[appName] = app;
+    emit newApplication(appName);
+    return app;
+}
+
+std::shared_ptr<Data_Category> Data::createCategory(std::shared_ptr<Data_Application> app, const QString &categoryName)
+{
+    auto category = std::make_shared<Data_Category>(categoryName);
+    app->addCategory(category);
+    emit newCategory(app->name(), categoryName, category->model());
+    return category;
+}
+
+//
+// Data_Category
+//
+
+Data_Category::Data_Category(const QString &name) : _name(name), _model() {}
+
+QAbstractListModel *Data_Category::model()
+{
+    return &_model;
+}
+
+//
+// Data_Application
+//
+
+Data_Application::Data_Application(const QString &name) : _name(name), _categorylist() {}
+
+std::shared_ptr<Data_Category> Data_Application::findCategory(const QString &categoryName)
+{
+    auto findcat = _categorylist.find(categoryName);
+    if (findcat == _categorylist.end()) return std::shared_ptr<Data_Category>();
+    return findcat->second;
+}
+
+void Data_Application::addCategory(std::shared_ptr<Data_Category> category)
+{
+    _categorylist[category->name()] = category;
 }

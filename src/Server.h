@@ -49,8 +49,8 @@ private slots:
 	void onReadyRead();
 	void onDisconnected();
 signals:
-	void onJsonReceived(const ApplicationInfo& clientInfo, quint8 cmd, const QJsonObject& jsonData);
-	void onJsonError(const ApplicationInfo& clientInfo, const QJsonParseError &error);
+	void onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject& jsonData);
+	void onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error);
 	void onError(const QTcpSocket &clientSocket, const QString &error);
 protected:
 	void incomingConnection(qintptr socketDescriptor) override;

@@ -41,6 +41,8 @@ set(SRCS
 	Server.cpp
 	Data.h
 	Data.cpp
+	LogModel.h
+	LogModel.cpp
 )
 
 get_target_property(_qmake_executable Qt6::qmake IMPORTED_LOCATION)
