@@ -15,6 +15,7 @@
 #include <QVariant>
 #include <QMetaType>
 #include <QClipboard>
+#include <QLabel>
 
 MainWindow *MainWindow::self;
 
@@ -48,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(&_data, SIGNAL(delApplication(const QString&)), this, SLOT(onDelApplication(const QString&)));
 	connect(&_data, SIGNAL(newCategory(const QString&, const QString &, QAbstractListModel *)), this, SLOT(onNewCategory(const QString&, const QString &, QAbstractListModel *)));
 	connect(&_data, SIGNAL(delCategory(const QString&, const QString &)), this, SLOT(onDelCategory(const QString&, const QString &)));
+	connect(&_data, SIGNAL(logAmount(const QString&, const QString &, int)), this, SLOT(onLogAmount(const QString&, const QString &, int)));
 
 	// menu: EDIT
 	QMenu *editMenu = new QMenu("&Edit", this);
@@ -282,7 +284,7 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	if (findapp == _applicationlist.end()) return;
 	auto app = findapp->second;
 
-	auto category = std::make_shared<Main_Category>(categoryName, new QListView);
+	auto category = std::make_shared<Main_Category>(categoryName, app->categories, new QListView);
 	app->addCategory(category);
 
 	category->logs->setProperty(PROPERTY_APPNAME, appName);	
@@ -299,7 +301,11 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	connect(category->logs, SIGNAL(doubleClicked(const QModelIndex&)),
 		this, SLOT(logListDoubleClicked(const QModelIndex&)));
 
-	app->categories->addTab(category->logs, categoryName);
+	int idx = app->categories->addTab(category->logs, categoryName);
+	QLabel *label = new QLabel("----");
+	label->setStyleSheet("QLabel{border-radius: 25px; background: red; color: white;}");
+	label->setAlignment(Qt::AlignCenter);
+	app->categories->tabBar()->setTabButton(idx, QTabBar::RightSide, label);
 }
 
 void MainWindow::onDelCategory(const QString &appName, const QString &categoryName)
@@ -307,6 +313,23 @@ void MainWindow::onDelCategory(const QString &appName, const QString &categoryNa
 	auto app = _applicationlist.find(appName);
 	if (app == _applicationlist.end()) return;	
 	app->second->removeCategory(categoryName);
+}
+
+void MainWindow::onLogAmount(const QString &appName, const QString &categoryName, int amount)
+{
+	auto app = _applicationlist.find(appName);
+	if (app == _applicationlist.end()) return;	
+
+	auto category = app->second->findCategory(categoryName);
+	if (!category) return;
+
+	int tab = category->apptabs->indexOf(category->logs);
+	if (tab < 0) return;
+
+	QLabel *label = qobject_cast<QLabel*>(category->apptabs->tabBar()->tabButton(tab, QTabBar::RightSide));
+	if (!label) return;
+
+	label->setText(QString("%1").arg(amount));
 }
 
 QString MainWindow::formatJSON(const QString &json)

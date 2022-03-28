@@ -23,9 +23,11 @@ class Main_Category : public QObject
 {
 	Q_OBJECT
 public:
-	Main_Category(const QString &name, QListView *logs) : name(name), logs(logs) {}
+	Main_Category(const QString &name, QTabWidget *apptabs, QListView *logs) : 
+		name(name), apptabs(apptabs), logs(logs) {}
 
 	QString name;
+	QTabWidget *apptabs;
 	QListView *logs;
 };
 
@@ -62,6 +64,7 @@ public Q_SLOTS:
     void onDelApplication(const QString &appName);
     void onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void onDelCategory(const QString &appName, const QString &categoryName);
+	void onLogAmount(const QString &appName, const QString &categoryName, int amount);
 
 	QTabWidget *createWindow();
 	void logListDetail(QListView *logs);

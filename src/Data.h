@@ -66,6 +66,7 @@ signals:
     void delApplication(const QString &appName);
     void newCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void delCategory(const QString &appName, const QString &categoryName);
+    void logAmount(const QString &appName, const QString &categoryName, int amount);
 private:
     void addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
         const QString &message, const QString &source);

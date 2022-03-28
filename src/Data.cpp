@@ -56,6 +56,7 @@ void Data::addToModel(LogModel *model, const QString &appName, const QDateTime &
     const QString &message, const QString &source)
 {
     model->addLog(appName, time, categoryName, priority, message, source);
+    emit logAmount(appName, categoryName, model->rowCount(QModelIndex()));
 }
 
 void Data::removeApplication(const QString &appName)
