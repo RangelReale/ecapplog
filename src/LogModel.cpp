@@ -37,9 +37,8 @@ QString LogModelItem::getDisplayMessage() const
 		arg(_time.toLocalTime().toString("yyyy-MM-dd hh:mm:ss.zzz")).
 		arg(_priority).
         arg("").
-        arg("").
-		//arg(logSource ? QString(" {{%1}}").arg(originalSource) : "").
 		//arg(logSourceTab ? QString(" [[%1]]").arg(f_source) : "").
+		arg(!_altCategory.isEmpty() ? QString(" {%1}").arg(_altCategory) : "").
 		arg(_message);
 }
 

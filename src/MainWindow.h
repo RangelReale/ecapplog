@@ -70,6 +70,7 @@ public Q_SLOTS:
 	void logListDetail(QListView *logs);
 
 	void menuEditClear();
+	void menuViewGroupCategories();
 
 	void applicationTabClose(int index);
 	void applicationTabBarContextMenu(const QPoint &point);

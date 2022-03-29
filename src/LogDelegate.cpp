@@ -65,10 +65,15 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
     // category
     if (!altCategory.isEmpty())
     {
-        int pixelsCat = option.fontMetrics.horizontalAdvance(QString("XX{%1}XX").arg(altCategory));
+        int pixelsCat = qMax(150, option.fontMetrics.horizontalAdvance(QString("XX{%1}XX").arg(altCategory)));
         QString textCat = QString(" {%1} ").arg(altCategory);
         QRect rectCat = drawRect.adjusted(0, 0, pixelsCat - drawRect.width(), 0);
+        QFont oldFont(painter->font());
+        QFont newFont(painter->font());
+        newFont.setItalic(true);
+        painter->setFont(newFont);
         painter->drawText(rectCat, Qt::AlignCenter, textCat);
+        painter->setFont(oldFont);
         drawRect.adjust(pixelsCat, 0, 0, 0);
     }
 
@@ -92,7 +97,7 @@ QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInde
 
     if (!altCategory.isEmpty())
     {
-        width += option.fontMetrics.horizontalAdvance(QString("XX{%1}XX").arg(altCategory));
+        width += qMax(150, option.fontMetrics.horizontalAdvance(QString("XX{%1}XX").arg(altCategory)));
     }
 
     size.setWidth(width);

@@ -1,6 +1,6 @@
 #include "Data.h"
 
-Data::Data() : _applicationlist()
+Data::Data() : _applicationlist(), _groupCategories(false)
 {
 
 }
@@ -29,7 +29,15 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source)
 {
-    internalLog(appName, time, categoryName, priority, message, source);
+    QString logCategory(categoryName);
+    QString altCategory;
+    if (_groupCategories) 
+    {
+        altCategory = categoryName;
+        logCategory = "ALL";
+    }
+
+    internalLog(appName, time, logCategory, priority, message, source, "", altCategory);
     if (Priority::isErrorOrWarning(priority))
     {
         internalLog(appName, time, "ERROR", priority, message, source, "", categoryName);
@@ -109,6 +117,16 @@ std::shared_ptr<Data_Category> Data::createCategory(std::shared_ptr<Data_Applica
     app->addCategory(category);
     emit newCategory(app->name(), categoryName, category->model());
     return category;
+}
+
+bool Data::getGroupCategories() const
+{
+    return _groupCategories;
+}
+
+void Data::setGroupCategories(bool value)
+{
+    _groupCategories = value;
 }
 
 //

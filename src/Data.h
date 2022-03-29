@@ -61,6 +61,9 @@ public:
     void removeCategory(const QString &appName, const QString &categoryName);
 
     void removeAllApplications();
+
+    bool getGroupCategories() const;
+    void setGroupCategories(bool value);
 signals:
     void newApplication(const QString &appName);
     void delApplication(const QString &appName);
@@ -79,4 +82,6 @@ private:
 
     typedef std::map<QString, std::shared_ptr<Data_Application> > applicationlist_t;    
     applicationlist_t _applicationlist;
+
+    bool _groupCategories;
 };

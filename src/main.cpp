@@ -5,8 +5,8 @@
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
-	app.setOrganizationName("ECAppLog");
-	app.setOrganizationDomain("ecapplog.dev");
+	app.setOrganizationName("RangelReale");
+	app.setOrganizationDomain("rangelreale.com");
 	app.setApplicationName("ECAppLog");
 	MainWindow mainwindow;
 	mainwindow.show();

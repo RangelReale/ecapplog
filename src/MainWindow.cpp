@@ -23,11 +23,15 @@ MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent), _applicationlist(), _dockCount(0), _rootWindow(nullptr)
 {
 	MainWindow::self = this;
+	QSettings settings;
 
     setGeometry(0, style()->pixelMetric(QStyle::PM_TitleBarHeight), 400, 400);
 
 	setWindowTitle("ECAppLog");
 	setWindowIcon(QIcon(":/ecapplog.png"));
+
+	// settings
+	_data.setGroupCategories(settings.value("group_categories", false).toBool());
 
 	_dockManager = new ads::CDockManager(this);
 
@@ -57,10 +61,18 @@ MainWindow::MainWindow(QWidget *parent) :
 	QAction *editClear = new QAction("&Clear", this);
 	connect(editClear, SIGNAL(triggered()), this, SLOT(menuEditClear()));
 	editMenu->addAction(editClear);
+
 	menuBar()->addMenu(editMenu);
 
 	// menu: VIEW
-	_viewMenu = new QMenu("&View", this);
+	_viewMenu = new QMenu("&View", this);	
+	QAction *viewGroupCategories = new QAction("&Group categories", this);
+	viewGroupCategories->setCheckable(true);
+	viewGroupCategories->setChecked(_data.getGroupCategories());
+	connect(viewGroupCategories, SIGNAL(triggered()), this, SLOT(menuViewGroupCategories()));
+	_viewMenu->addAction(viewGroupCategories);
+	_viewMenu->addSeparator();
+
 	menuBar()->addMenu(_viewMenu);
 
 	// initialization
@@ -118,6 +130,16 @@ void MainWindow::menuEditClear()
 	{
 		qobject_cast<QTabWidget*>(wd->widget())->clear();
 	}
+}
+
+void MainWindow::menuViewGroupCategories()
+{
+	_data.setGroupCategories(!_data.getGroupCategories());
+
+	QSettings settings;
+	settings.setValue("group_categories", _data.getGroupCategories());
+
+	qobject_cast<QAction*>(sender())->setChecked(_data.getGroupCategories());
 }
 
 void MainWindow::applicationTabClose(int index)
@@ -292,7 +314,7 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 
 	category->logs->setItemDelegate(new LogDelegate);
 	category->logs->setSelectionMode(QAbstractItemView::ExtendedSelection);
-	//category->logs->setContextMenuPolicy(Qt::CustomContextMenu);
+	category->logs->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	category->logs->setModel(model);
 
