@@ -1,5 +1,7 @@
 #include "Data.h"
 
+#include <QJsonArray>
+
 Data::Data() : _applicationlist(), _groupCategories(false)
 {
 
@@ -8,12 +10,22 @@ Data::Data() : _applicationlist(), _groupCategories(false)
 void Data::log(const QString &appName, const QJsonObject &jsonData)
 {
 	QString f_category, f_time, f_priority, f_message, f_source;
+    QStringList f_extraCategories;
 
 	if (jsonData.contains("category")) f_category = jsonData.value("category").toString();
 	if (jsonData.contains("time")) f_time = jsonData.value("time").toString();
 	if (jsonData.contains("priority")) f_priority = jsonData.value("priority").toString();
 	if (jsonData.contains("message")) f_message = jsonData.value("message").toString();
 	if (jsonData.contains("source")) f_source = jsonData.value("source").toString();
+	if (jsonData.contains("extra_categories")) {
+        auto catJson = jsonData.value("extra_categories");
+        if (catJson.isArray()) {
+            for (auto extraCat : catJson.toArray()) f_extraCategories.push_back(extraCat.toString());
+        } else if (catJson.isString()) {
+            f_extraCategories.push_back(catJson.toString());
+        }
+    }
+
     QDateTime time;
 	if (!f_time.isEmpty()) {
 		// parse time
@@ -23,11 +35,11 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 	if (time.isNull()) time = QDateTime::currentDateTime();
     if (f_category.isEmpty()) f_category = "<unknown>";
 
-    log(appName, time, f_category, f_priority, f_message, f_source);
+    log(appName, time, f_category, f_priority, f_message, f_source, f_extraCategories);
 }
 
 void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source)
+    const QString &message, const QString &source, const QStringList &extraCategories)
 {
     QString logCategory(categoryName);
     QString altCategory;
@@ -42,13 +54,21 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
     {
         internalLog(appName, time, "ERROR", priority, message, source, "", categoryName);
     }
+
+    if (!extraCategories.isEmpty())
+    {
+        for ( const auto& extraCategory : extraCategories  )
+        {
+            if (extraCategory != logCategory) {
+                internalLog(appName, time, extraCategory, priority, message, source, "", categoryName, true);
+            }
+        }
+    }
 }
 
 void Data::internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QString &altApp, const QString &altCategory)
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
 {
-    //qDebug() << appName << time.toString(Qt::ISODateWithMs) << categoryName << priority << message;
-
     // find application
     std::shared_ptr<Data_Application> app;
     auto findapp = _applicationlist.find(appName);
@@ -66,14 +86,14 @@ void Data::internalLog(const QString &appName, const QDateTime &time, const QStr
         category = createCategory(app, categoryName);
     }
 
-    addToModel(category->model(), appName, time, categoryName, priority, message, source, altApp, altCategory);
+    addToModel(category->model(), appName, time, categoryName, priority, message, source, altApp, altCategory, isExtraCategory);
 }
 
 
 void Data::addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QString &altApp, const QString &altCategory)
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
 {
-    model->addLog(appName, time, categoryName, priority, message, source, altApp, altCategory);
+    model->addLog(appName, time, categoryName, priority, message, source, altApp, altCategory, isExtraCategory);
     emit logAmount(appName, categoryName, model->rowCount(QModelIndex()));
 }
 

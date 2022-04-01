@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QDateTime>
 #include <QAbstractListModel>
+#include <QStringList>
 
 #include <memory>
 
@@ -55,7 +56,7 @@ public:
 
     void log(const QString &appName, const QJsonObject &jsonData);
     void log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-        const QString &message, const QString &source = QString());
+        const QString &message, const QString &source = QString(), const QStringList &extraCategories = QStringList());
 
     void removeApplication(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
@@ -73,9 +74,9 @@ signals:
 private:
     void internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
         const QString &message, const QString &source = QString(), const QString &altApp = QString(), 
-        const QString &altCategory = QString());
+        const QString &altCategory = QString(), bool isExtraCategory = false);
     void addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-        const QString &message, const QString &source, const QString &altApp, const QString &altCategory);
+        const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory);
 
     std::shared_ptr<Data_Application> createApplication(const QString &appName);
     std::shared_ptr<Data_Category> createCategory(std::shared_ptr<Data_Application>, const QString &categoryName);
