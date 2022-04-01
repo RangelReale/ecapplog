@@ -16,6 +16,7 @@
 #include <QMetaType>
 #include <QClipboard>
 #include <QLabel>
+#include <QBoxLayout>
 
 MainWindow *MainWindow::self;
 
@@ -323,7 +324,28 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	connect(category->logs, SIGNAL(doubleClicked(const QModelIndex&)),
 		this, SLOT(logListDoubleClicked(const QModelIndex&)));
 
-	int idx = app->categories->addTab(category->logs, categoryName);
+	QWidget *categoryParent = new QWidget;
+	QVBoxLayout *layout = new QVBoxLayout;
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
+	categoryParent->setLayout(layout);
+	
+	QLabel *categoryLabel = new QLabel(categoryName);
+	categoryLabel->setAlignment(Qt::AlignCenter);
+	QPalette palette = categoryLabel->palette();	
+	palette.setColor(categoryLabel->foregroundRole(), QColor(Qt::white));
+	palette.setColor(categoryLabel->backgroundRole(), QColor(Qt::darkBlue));
+	// TODO: copy colors from button
+	//palette.setColor(categoryLabel->foregroundRole(), qApp->style()->standardPalette().color(QPalette::Active, QPalette::ButtonText));
+	//palette.setColor(categoryLabel->backgroundRole(), qApp->style()->standardPalette().color(QPalette::Active, QPalette::Button));
+	categoryLabel->setPalette(palette);
+	categoryLabel->setAutoFillBackground(true);
+
+	layout->addWidget(categoryLabel);
+	layout->addSpacing(6);
+	layout->addWidget(category->logs);
+
+	int idx = app->categories->addTab(categoryParent, categoryName);
 	QLabel *label = new QLabel("----");
 	label->setStyleSheet("QLabel{border-radius: 25px; background: red; color: white;}");
 	label->setAlignment(Qt::AlignCenter);
