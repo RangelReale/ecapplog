@@ -307,7 +307,7 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	if (findapp == _applicationlist.end()) return;
 	auto app = findapp->second;
 
-	auto category = std::make_shared<Main_Category>(categoryName, app->categories, new QListView);
+	auto category = std::make_shared<Main_Category>(categoryName, app->categories, new QListView, new QLabel("-----"));
 	app->addCategory(category);
 
 	category->logs->setProperty(PROPERTY_APPNAME, appName);	
@@ -346,10 +346,9 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	layout->addWidget(category->logs);
 
 	int idx = app->categories->addTab(categoryParent, categoryName);
-	QLabel *label = new QLabel("----");
-	label->setStyleSheet("QLabel{border-radius: 25px; background: red; color: white;}");
-	label->setAlignment(Qt::AlignCenter);
-	app->categories->tabBar()->setTabButton(idx, QTabBar::RightSide, label);
+	category->logsamount->setStyleSheet("QLabel{border-radius: 25px; background: red; color: white;}");
+	category->logsamount->setAlignment(Qt::AlignCenter);
+	app->categories->tabBar()->setTabButton(idx, QTabBar::RightSide, category->logsamount);
 }
 
 void MainWindow::onDelCategory(const QString &appName, const QString &categoryName)
@@ -367,13 +366,7 @@ void MainWindow::onLogAmount(const QString &appName, const QString &categoryName
 	auto category = app->second->findCategory(categoryName);
 	if (!category) return;
 
-	int tab = category->apptabs->indexOf(category->logs);
-	if (tab < 0) return;
-
-	QLabel *label = qobject_cast<QLabel*>(category->apptabs->tabBar()->tabButton(tab, QTabBar::RightSide));
-	if (!label) return;
-
-	label->setText(QString("%1").arg(amount));
+	category->logsamount->setText(QString("%1").arg(amount));
 }
 
 QString MainWindow::formatJSON(const QString &json)

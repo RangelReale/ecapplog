@@ -15,6 +15,7 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QAction>
+#include <QLabel>
 
 #include <string>
 #include <map>
@@ -23,12 +24,13 @@ class Main_Category : public QObject
 {
 	Q_OBJECT
 public:
-	Main_Category(const QString &name, QTabWidget *apptabs, QListView *logs) : 
-		name(name), apptabs(apptabs), logs(logs) {}
+	Main_Category(const QString &name, QTabWidget *apptabs, QListView *logs, QLabel *logsamount) : 
+		name(name), apptabs(apptabs), logs(logs), logsamount(logsamount) {}
 
 	QString name;
 	QTabWidget *apptabs;
 	QListView *logs;
+	QLabel *logsamount;
 };
 
 class Main_Application : public QObject
