@@ -30,7 +30,10 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 	if (!f_time.isEmpty()) {
 		// parse time
 		QDateTime jsontime = QDateTime::fromString(f_time, "yyyy-MM-ddThh:mm:ss.zzz");
-		if (jsontime.isValid()) time = jsontime;
+		if (jsontime.isValid()) {
+            jsontime.setTimeSpec(Qt::UTC);
+            time = jsontime;
+        }
 	}
 	if (time.isNull()) time = QDateTime::currentDateTime();
     if (f_category.isEmpty()) f_category = "<unknown>";
