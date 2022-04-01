@@ -29,7 +29,7 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
     QDateTime time;
 	if (!f_time.isEmpty()) {
 		// parse time
-		QDateTime jsontime = QDateTime::fromString(f_time, "yyyy-MM-ddThh:mm:ss.zzzZ");
+		QDateTime jsontime = QDateTime::fromString(f_time, "yyyy-MM-ddThh:mm:ss.zzz");
 		if (jsontime.isValid()) time = jsontime;
 	}
 	if (time.isNull()) time = QDateTime::currentDateTime();
