@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "LogDelegate.h"
 #include "DetailWindow.h"
+#include "Widgets.h"
 
 #include <QApplication>
 #include <QStyle>
@@ -101,7 +102,7 @@ QString MainWindow::applicationName(const QTcpSocket &clientSocket, const QStrin
 
 QTabWidget *MainWindow::createWindow()
 {
-	QTabWidget *tabs = new QTabWidget;
+	QTabWidget *tabs = new TabWidget;
 	tabs->setTabsClosable(true);
 	tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
 
@@ -295,7 +296,7 @@ void MainWindow::onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jso
 
 void MainWindow::onNewApplication(const QString &appName)
 {
-	auto app = std::make_shared<Main_Application>(appName, new QTabWidget);
+	auto app = std::make_shared<Main_Application>(appName, new TabWidget);
 	_applicationlist[app->name] = app;
 
 	app->categories->setProperty(PROPERTY_APPNAME, appName);
@@ -392,7 +393,6 @@ QString MainWindow::formatJSON(const QString &json)
 	if (doc.isNull()) return json;
 	return doc.toJson(QJsonDocument::Indented);
 }
-
 
 //
 // Main_Application

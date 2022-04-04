@@ -43,6 +43,8 @@ set(SRCS
 	Server.cpp
 	Data.h
 	Data.cpp
+	Widgets.h
+	Widgets.cpp
 	LogModel.h
 	LogModel.cpp
 	LogDelegate.h
