@@ -14,7 +14,7 @@ bool TabWidget::eventFilter(QObject *o, QEvent *e)
 	if (o == tabBar() && e->type() == QEvent::MouseButtonPress) {
 		QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(e);
         if (mouseEvent->button() == Qt::MiddleButton) {
-            removeTab(tabBar()->tabAt(mouseEvent->pos()));
+            emit tabCloseRequested(tabBar()->tabAt(mouseEvent->pos()));
             return true;
         }
 	}
