@@ -332,6 +332,10 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	
 	QLabel *categoryLabel = new QLabel(categoryName);
 	categoryLabel->setAlignment(Qt::AlignCenter);
+	categoryLabel->setStyleSheet("QLabel {padding: 4px 0;}");
+	QFont font = categoryLabel->font();
+	font.setPointSize(20);
+	categoryLabel->setFont(font);
 	QPalette palette = categoryLabel->palette();	
 	palette.setColor(categoryLabel->foregroundRole(), QColor(Qt::white));
 	palette.setColor(categoryLabel->backgroundRole(), QColor(Qt::darkBlue));
