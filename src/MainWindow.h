@@ -72,6 +72,7 @@ public Q_SLOTS:
 	void logListDetail(QListView *logs);
 
 	void menuEditClear();
+	void menuEditPause();
 	void menuViewGroupCategories();
 
 	void applicationTabClose(int index);

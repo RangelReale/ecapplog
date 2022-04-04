@@ -65,6 +65,8 @@ public:
 
     bool getGroupCategories() const;
     void setGroupCategories(bool value);
+    bool getPaused() const;
+    void setPaused(bool value);
 signals:
     void newApplication(const QString &appName);
     void delApplication(const QString &appName);
@@ -85,4 +87,5 @@ private:
     applicationlist_t _applicationlist;
 
     bool _groupCategories;
+    bool _paused;
 };

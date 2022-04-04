@@ -2,7 +2,7 @@
 
 #include <QJsonArray>
 
-Data::Data() : _applicationlist(), _groupCategories(false)
+Data::Data() : _applicationlist(), _groupCategories(false), _paused(false)
 {
 
 }
@@ -72,6 +72,8 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
 void Data::internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
 {
+    if (_paused) return;
+
     // find application
     std::shared_ptr<Data_Application> app;
     auto findapp = _applicationlist.find(appName);
@@ -150,6 +152,16 @@ bool Data::getGroupCategories() const
 void Data::setGroupCategories(bool value)
 {
     _groupCategories = value;
+}
+
+bool Data::getPaused() const
+{
+    return _paused;
+}
+
+void Data::setPaused(bool value)
+{
+    _paused = value;
 }
 
 //

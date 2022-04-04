@@ -63,6 +63,13 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(editClear, SIGNAL(triggered()), this, SLOT(menuEditClear()));
 	editMenu->addAction(editClear);
 
+	editMenu->addSeparator();
+
+	QAction *editPause = new QAction("&Pause", this);
+	editPause->setCheckable(true);
+	connect(editPause, SIGNAL(triggered()), this, SLOT(menuEditPause()));
+	editMenu->addAction(editPause);
+
 	menuBar()->addMenu(editMenu);
 
 	// menu: VIEW
@@ -131,6 +138,12 @@ void MainWindow::menuEditClear()
 	{
 		qobject_cast<QTabWidget*>(wd->widget())->clear();
 	}
+}
+
+void MainWindow::menuEditPause()
+{
+	_data.setPaused(!_data.getPaused());
+	qobject_cast<QAction*>(sender())->setChecked(_data.getPaused());
 }
 
 void MainWindow::menuViewGroupCategories()
