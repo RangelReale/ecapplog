@@ -339,6 +339,9 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 		this, SLOT(logListDoubleClicked(const QModelIndex&)));
 
 	QWidget *categoryParent = new QWidget;
+	categoryParent->setProperty(PROPERTY_APPNAME, appName);	
+	categoryParent->setProperty(PROPERTY_CATEGORYNAME, categoryName);	
+
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(0);
