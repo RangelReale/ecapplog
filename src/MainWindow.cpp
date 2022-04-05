@@ -18,6 +18,7 @@
 #include <QClipboard>
 #include <QLabel>
 #include <QBoxLayout>
+#include <QListIterator>
 
 MainWindow *MainWindow::self;
 
@@ -122,8 +123,11 @@ void MainWindow::logListDetail(QListView *logs)
 {
 	QStringList slist;
 	QStringList rslist;
-	foreach(const QModelIndex &index,
-		logs->selectionModel()->selectedIndexes()) {
+
+	QListIterator<QModelIndex> iter(logs->selectionModel()->selectedIndexes());
+	iter.toBack();
+	while (iter.hasPrevious()) {
+		auto index(iter.previous());
 		slist.append(index.data(Qt::DisplayRole).toString());
 		rslist.append(formatJSON(index.data(MODELROLE_SOURCE).toString()));
 	}
@@ -236,18 +240,20 @@ void MainWindow::logListContextMenu(const QPoint &point)
 		if (selectedItem == acopy) 
 		{
 			QStringList slist;
-			foreach(const QModelIndex &index,
-				list->selectionModel()->selectedIndexes()) {
-				slist.append(index.data(Qt::DisplayRole).toString());
+			QListIterator<QModelIndex> iter(list->selectionModel()->selectedIndexes());
+			iter.toBack();
+			while (iter.hasPrevious()) {
+				slist.append(iter.previous().data(Qt::DisplayRole).toString());
 			}
 			QGuiApplication::clipboard()->setText(slist.join("\n"));
 		} 
 		else if (selectedItem == acopyrs) 
 		{
 			QStringList slist;
-			foreach(const QModelIndex &index,
-				list->selectionModel()->selectedIndexes()) {
-				slist.append(index.data(MODELROLE_SOURCE).toString());
+			QListIterator<QModelIndex> iter(list->selectionModel()->selectedIndexes());
+			iter.toBack();
+			while (iter.hasPrevious()) {
+				slist.append(iter.previous().data(MODELROLE_SOURCE).toString());
 			}
 			QGuiApplication::clipboard()->setText(slist.join("\n"));
 		} 
@@ -301,6 +307,7 @@ void MainWindow::onNewApplication(const QString &appName)
 
 	app->categories->setProperty(PROPERTY_APPNAME, appName);
 	app->categories->setTabsClosable(true);
+	app->categories->setMovable(true);
 	app->categories->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	connect(app->categories, SIGNAL(tabCloseRequested(int)), this, SLOT(categoryTabClose(int)));
