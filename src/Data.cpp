@@ -9,7 +9,7 @@ Data::Data() : _applicationlist(), _groupCategories(false), _paused(false)
 
 void Data::log(const QString &appName, const QJsonObject &jsonData)
 {
-	QString f_category, f_time, f_priority, f_message, f_source;
+	QString f_category, f_time, f_priority, f_message, f_source, f_originalCategory;
     QStringList f_extraCategories;
 
 	if (jsonData.contains("category")) f_category = jsonData.value("category").toString();
@@ -17,6 +17,7 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 	if (jsonData.contains("priority")) f_priority = jsonData.value("priority").toString();
 	if (jsonData.contains("message")) f_message = jsonData.value("message").toString();
 	if (jsonData.contains("source")) f_source = jsonData.value("source").toString();
+	if (jsonData.contains("original_category")) f_originalCategory = jsonData.value("original_category").toString();
 	if (jsonData.contains("extra_categories")) {
         auto catJson = jsonData.value("extra_categories");
         if (catJson.isArray()) {
@@ -36,26 +37,30 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
         }
 	}
 	if (time.isNull()) time = QDateTime::currentDateTime();
-    if (f_category.isEmpty()) f_category = "<unknown>";
 
-    log(appName, time, f_category, f_priority, f_message, f_source, f_extraCategories);
+    log(appName, time, f_category, f_priority, f_message, f_source, f_originalCategory, f_extraCategories);
 }
 
 void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QStringList &extraCategories)
+    const QString &message, const QString &source, const QString &originalCategory, const QStringList &extraCategories)
 {
     QString logCategory(categoryName);
     QString altCategory;
+    QString categoryNameComplete(categoryName);
+    if (!originalCategory.isEmpty()) {
+        altCategory = originalCategory;
+        categoryNameComplete = QString("%1 (%2)").arg(categoryName, originalCategory);
+    }
     if (_groupCategories) 
     {
-        altCategory = categoryName;
+        altCategory = categoryNameComplete;
         logCategory = "ALL";
     }
 
     internalLog(appName, time, logCategory, priority, message, source, "", altCategory);
     if (Priority::isErrorOrWarning(priority))
     {
-        internalLog(appName, time, "ERROR", priority, message, source, "", categoryName);
+        internalLog(appName, time, "ERROR", priority, message, source, "", categoryNameComplete);
     }
 
     if (!extraCategories.isEmpty())
@@ -63,7 +68,7 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         for ( const auto& extraCategory : extraCategories  )
         {
             if (extraCategory != logCategory) {
-                internalLog(appName, time, extraCategory, priority, message, source, "", categoryName, true);
+                internalLog(appName, time, extraCategory, priority, message, source, "", categoryNameComplete, true);
             }
         }
     }
@@ -73,6 +78,9 @@ void Data::internalLog(const QString &appName, const QDateTime &time, const QStr
     const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
 {
     if (_paused) return;
+
+    QString appCategory(categoryName);
+    if (appCategory.isEmpty()) appCategory = "<unknown>";
 
     // find application
     std::shared_ptr<Data_Application> app;
@@ -85,13 +93,13 @@ void Data::internalLog(const QString &appName, const QDateTime &time, const QStr
         app = findapp->second;
 
     // find category
-    auto category = app->findCategory(categoryName);
+    auto category = app->findCategory(appCategory);
     if (!category)
     {
-        category = createCategory(app, categoryName);
+        category = createCategory(app, appCategory);
     }
 
-    addToModel(category->model(), appName, time, categoryName, priority, message, source, altApp, altCategory, isExtraCategory);
+    addToModel(category->model(), appName, time, appCategory, priority, message, source, altApp, altCategory, isExtraCategory);
 }
 
 

@@ -56,7 +56,8 @@ public:
 
     void log(const QString &appName, const QJsonObject &jsonData);
     void log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-        const QString &message, const QString &source = QString(), const QStringList &extraCategories = QStringList());
+        const QString &message, const QString &source = QString(), const QString &originalCategory = QString(), 
+        const QStringList &extraCategories = QStringList());
 
     void removeApplication(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
