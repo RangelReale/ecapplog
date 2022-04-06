@@ -49,7 +49,7 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
     QString categoryNameComplete(categoryName);
     if (!originalCategory.isEmpty()) {
         altCategory = originalCategory;
-        categoryNameComplete = QString("%1 (%2)").arg(categoryName, originalCategory);
+        categoryNameComplete = QString("%1 [%2]").arg(categoryName, originalCategory);
     }
     if (_groupCategories) 
     {
