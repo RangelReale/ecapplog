@@ -67,6 +67,8 @@ public Q_SLOTS:
     void onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void onDelCategory(const QString &appName, const QString &categoryName);
 	void onLogAmount(const QString &appName, const QString &categoryName, int amount);
+    void onNewFilter(const QString &filterName);
+    void onFilterChanged(const QString &filterName);
 
 	QTabWidget *createWindow();
 	void logListDetail(QListView *logs);
@@ -74,6 +76,9 @@ public Q_SLOTS:
 	void menuEditClear();
 	void menuEditPause();
 	void menuViewGroupCategories();
+	void menuFilterNew();
+	void menuFilterClear();
+	void menuFilterGroupBy();
 
 	void applicationTabClose(int index);
 	void applicationTabBarContextMenu(const QPoint &point);
@@ -101,4 +106,5 @@ private:
 	ads::CDockManager* _dockManager;
 	ads::CDockWidget* _rootWindow;
 	QMenu *_viewMenu;
+	QMenu *_filterMenu;
 };

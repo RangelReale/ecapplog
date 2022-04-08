@@ -2,7 +2,7 @@
 
 #include <QJsonArray>
 
-Data::Data() : _applicationlist(), _groupCategories(false), _paused(false)
+Data::Data() : _applicationlist(), _filterlist(), _filtercount(0), _groupCategories(false), _paused(false)
 {
 
 }
@@ -58,6 +58,7 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
     }
 
     internalLog(appName, time, logCategory, priority, message, source, "", altCategory);
+    logFilter(appName, time, logCategory, priority, message, source);
     if (Priority::isErrorOrWarning(priority))
     {
         internalLog(appName, time, "ERROR", priority, message, source, "", categoryNameComplete);
@@ -69,7 +70,21 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         {
             if (extraCategory != logCategory) {
                 internalLog(appName, time, extraCategory, priority, message, source, "", categoryNameComplete, true);
+                logFilter(appName, time, extraCategory, priority, message, source);
             }
+        }
+    }
+}
+
+void Data::logFilter(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
+    const QString &message, const QString &source)
+{
+    for (auto filter : _filterlist)
+    {
+        if (filter.second->isFilter(appName, categoryName))
+        {
+            internalLog(filter.second->name(), time, filter.second->filterCategoryName(appName, categoryName), 
+                priority, message, source, appName, categoryName);
         }
     }
 }
@@ -136,6 +151,20 @@ void Data::removeCategory(const QString &appName, const QString &categoryName)
     }
 }
 
+void Data::insertFilter()
+{
+    QString filterName = QString("FILTER%1").arg(++_filtercount);
+    createFilter(filterName);
+}
+
+void Data::clearFilter(const QString &filterName)
+{
+    auto findfilter = _filterlist.find(filterName);
+    if (findfilter == _filterlist.end()) return;
+
+    findfilter->second->clearFilter();
+}
+
 std::shared_ptr<Data_Application> Data::createApplication(const QString &appName)
 {
     auto app = std::make_shared<Data_Application>(appName);
@@ -150,6 +179,31 @@ std::shared_ptr<Data_Category> Data::createCategory(std::shared_ptr<Data_Applica
     app->addCategory(category);
     emit newCategory(app->name(), categoryName, category->model());
     return category;
+}
+
+std::shared_ptr<Data_Filter> Data::createFilter(const QString &filterName)
+{
+    auto filter = std::make_shared<Data_Filter>(filterName);
+    _filterlist[filterName] = filter;
+    emit newFilter(filterName);
+    return filter;
+}
+
+void Data::toogleFilter(const QString &filterName, const QString &appName, const QString &categoryName)
+{
+    auto findfilter = _filterlist.find(filterName);
+    if (findfilter == _filterlist.end()) return;
+
+    findfilter->second->toogleFilter(appName, categoryName);
+}
+
+void Data::setFilterGroupBy(const QString &filterName, Data_Filter_GroupBy groupby)
+{
+    auto findfilter = _filterlist.find(filterName);
+    if (findfilter == _filterlist.end()) return;
+
+    findfilter->second->setGroupBy(groupby);
+    emit filterChanged(filterName);
 }
 
 bool Data::getGroupCategories() const
@@ -170,6 +224,13 @@ bool Data::getPaused() const
 void Data::setPaused(bool value)
 {
     _paused = value;
+}
+
+QStringList Data::filterNames() const
+{
+    QStringList ret;
+    for (auto filter : _filterlist) ret.append(filter.first);
+    return ret;
 }
 
 //
@@ -204,4 +265,54 @@ void Data_Application::addCategory(std::shared_ptr<Data_Category> category)
 bool Data_Application::removeCategory(const QString &categoryName)
 {
     return _categorylist.erase(categoryName) > 0;
+}
+
+//
+// Data_Filter
+//
+
+Data_Filter::Data_Filter(const QString &name) : _name(name), _groupby(Data_Filter_GroupBy::All), 
+    _filterlist() {}
+
+void Data_Filter::toogleFilter(const QString &appName, const QString &categoryName)
+{
+    QString pAppName(parseAppName(appName));
+    QString find = QString("%1$$%2").arg(pAppName).arg(categoryName);
+    if (_filterlist.erase(find) == 0) _filterlist.insert(find);
+}
+
+void Data_Filter::clearFilter()
+{
+    _filterlist.clear();
+}
+
+bool Data_Filter::isFilter(const QString &appName, const QString &categoryName)
+{
+    QString pAppName(parseAppName(appName));
+    QString find = QString("%1$$%2").arg(pAppName).arg(categoryName);
+    return _filterlist.find(find) != _filterlist.end();
+}
+
+QString Data_Filter::filterCategoryName(const QString &appName, const QString &categoryName)
+{
+    QString filterCategory("ALL");
+    switch (_groupby)
+    {
+    case Data_Filter_GroupBy::ByApplication:
+        filterCategory = parseAppName(appName);
+        break;
+    case Data_Filter_GroupBy::ByCategory:
+        filterCategory = QString("%1:%2").arg(parseAppName(appName)).arg(categoryName);
+        break;
+    default:
+        break;
+    }
+    return filterCategory;
+}
+
+QString Data_Filter::parseAppName(const QString &appName)
+{
+    int lastColon = appName.lastIndexOf(":");
+    if (lastColon == -1) return appName;
+    return appName.mid(0, lastColon);
 }

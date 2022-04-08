@@ -10,6 +10,7 @@
 #include <QMessageBox>
 #include <QMenuBar>
 #include <QAction>
+#include <QActionGroup>
 #include <QInputDialog>
 #include <QDateTime>
 #include <QSettings>
@@ -19,6 +20,10 @@
 #include <QLabel>
 #include <QBoxLayout>
 #include <QListIterator>
+
+#define FILTERMENU_FILTERNAME       	"ECL_FILTERNAME"
+#define FILTERMENU_GROUPBY       	    "ECL_FILTERGROUPBY"
+
 
 MainWindow *MainWindow::self;
 
@@ -57,6 +62,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(&_data, SIGNAL(newCategory(const QString&, const QString &, QAbstractListModel *)), this, SLOT(onNewCategory(const QString&, const QString &, QAbstractListModel *)));
 	connect(&_data, SIGNAL(delCategory(const QString&, const QString &)), this, SLOT(onDelCategory(const QString&, const QString &)));
 	connect(&_data, SIGNAL(logAmount(const QString&, const QString &, int)), this, SLOT(onLogAmount(const QString&, const QString &, int)));
+	connect(&_data, SIGNAL(newFilter(const QString&)), this, SLOT(onNewFilter(const QString&)));
+	connect(&_data, SIGNAL(filterChanged(const QString&)), this, SLOT(onFilterChanged(const QString&)));
 
 	// menu: EDIT
 	QMenu *editMenu = new QMenu("&Edit", this);
@@ -85,8 +92,20 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	menuBar()->addMenu(_viewMenu);
 
+	// menu: FILTER
+	_filterMenu = new QMenu("&Filter", this);
+
+	QAction *filterNewMenu = new QAction("&New filter", this);
+	connect(filterNewMenu, SIGNAL(triggered()), this, SLOT(menuFilterNew()));
+	_filterMenu->addAction(filterNewMenu);
+
+	_filterMenu->addSeparator();
+
+	menuBar()->addMenu(_filterMenu);
+
 	// initialization
 	createWindow();
+	menuFilterNew();
 }
 
 QString MainWindow::applicationName(const ApplicationInfo& appInfo)
@@ -161,6 +180,30 @@ void MainWindow::menuViewGroupCategories()
 	qobject_cast<QAction*>(sender())->setChecked(_data.getGroupCategories());
 }
 
+void MainWindow::menuFilterNew()
+{
+	_data.insertFilter();
+}
+
+void MainWindow::menuFilterClear()
+{
+	QAction *action = qobject_cast<QAction*>(sender());
+	if (!action) return;
+	QVariant filterName = action->property(FILTERMENU_FILTERNAME);
+	if (!filterName.isValid()) return;
+	_data.clearFilter(filterName.toString());
+}
+
+void MainWindow::menuFilterGroupBy()
+{
+	QAction *action = qobject_cast<QAction*>(sender());
+	if (!action) return;
+	QVariant filterName = action->property(FILTERMENU_FILTERNAME);
+	QVariant groupBy = action->property(FILTERMENU_GROUPBY);
+	if (!filterName.isValid()) return;
+	_data.setFilterGroupBy(filterName.toString(), static_cast<Data_Filter_GroupBy>(groupBy.toInt()));
+}
+
 void MainWindow::applicationTabClose(int index)
 {
 	QTabWidget *tabs = qobject_cast<QTabWidget*>(sender());
@@ -220,7 +263,32 @@ void MainWindow::categoryTabClose(int index)
 
 void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 {
+	if (point.isNull())
+		return;
+ 
+	QTabBar *tabBar = qobject_cast<QTabBar *>(sender());
+	QTabWidget *sourceTabWidget = qobject_cast<QTabWidget*>(tabBar->parentWidget());
 
+	int tabIndex = tabBar->tabAt(point);
+	QMenu menu(this);
+
+	QString appName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_APPNAME).toString());
+	if (appName.startsWith("FILTER")) return;
+
+	QMenu filterMenu(tr("Add category to filter"), this);
+	for (auto filter : _data.filterNames())
+	{
+		filterMenu.addAction(filter);
+	}
+	menu.addMenu(&filterMenu);
+
+	QAction *selectedItem = menu.exec(tabBar->mapToGlobal(point));
+	if (selectedItem)
+	{
+		QString filterName = selectedItem->text();
+		QString categoryName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_CATEGORYNAME).toString());
+		_data.toogleFilter(filterName, appName, categoryName);
+	}
 }
 
 void MainWindow::logListContextMenu(const QPoint &point)
@@ -395,6 +463,53 @@ void MainWindow::onLogAmount(const QString &appName, const QString &categoryName
 	if (!category) return;
 
 	category->logsamount->setText(QString("%1").arg(amount));
+}
+
+void MainWindow::onNewFilter(const QString &filterName)
+{
+	QMenu *newFilter = new QMenu(filterName, this);
+	newFilter->setProperty(FILTERMENU_FILTERNAME, filterName);
+	_filterMenu->addMenu(newFilter);
+
+	QAction *fClear = new QAction("Clear", newFilter);
+	fClear->setProperty(FILTERMENU_FILTERNAME, filterName);
+	connect(fClear, SIGNAL(triggered()), this, SLOT(menuFilterClear()));
+	newFilter->addAction(fClear);
+
+	newFilter->addSeparator();
+
+	QActionGroup *filterGroupBy = new QActionGroup(this);
+
+	QAction *fGroupBy = new QAction("&Single category", this);
+	fGroupBy->setProperty(FILTERMENU_FILTERNAME, filterName);
+	fGroupBy->setProperty(FILTERMENU_GROUPBY, static_cast<int>(Data_Filter_GroupBy::All));
+	connect(fGroupBy, SIGNAL(triggered()), this, SLOT(menuFilterGroupBy()));
+	fGroupBy->setCheckable(true);
+	fGroupBy->setChecked(true);
+	filterGroupBy->addAction(fGroupBy);
+	newFilter->addAction(fGroupBy);
+
+	fGroupBy = new QAction("Groub by &category", this);
+	fGroupBy->setProperty(FILTERMENU_FILTERNAME, filterName);
+	fGroupBy->setProperty(FILTERMENU_GROUPBY, static_cast<int>(Data_Filter_GroupBy::ByCategory));
+	connect(fGroupBy, SIGNAL(triggered()), this, SLOT(menuFilterGroupBy()));
+	fGroupBy->setCheckable(true);
+	filterGroupBy->addAction(fGroupBy);
+	newFilter->addAction(fGroupBy);
+
+	fGroupBy = new QAction("Group by &application", this);
+	fGroupBy->setProperty(FILTERMENU_FILTERNAME, filterName);
+	fGroupBy->setProperty(FILTERMENU_GROUPBY, static_cast<int>(Data_Filter_GroupBy::ByApplication));
+	connect(fGroupBy, SIGNAL(triggered()), this, SLOT(menuFilterGroupBy()));
+	fGroupBy->setCheckable(true);
+	filterGroupBy->addAction(fGroupBy);
+	newFilter->addAction(fGroupBy);
+
+}
+
+void MainWindow::onFilterChanged(const QString &filterName)
+{
+
 }
 
 QString MainWindow::formatJSON(const QString &json)
