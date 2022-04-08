@@ -62,6 +62,21 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
     painter->drawText(rectPrio, Qt::AlignCenter, textPrio);
     drawRect.adjust(pixelsPrio, 0, 0, 0);
 
+    // app
+    if (!altApp.isEmpty())
+    {
+        int pixelsApp = qMax(150, option.fontMetrics.horizontalAdvance(QString("XX[%1]XX").arg(altApp)));
+        QString textApp = QString(" {%1} ").arg(altApp);
+        QRect rectApp = drawRect.adjusted(0, 0, pixelsApp - drawRect.width(), 0);
+        QFont oldFont(painter->font());
+        QFont newFont(painter->font());
+        newFont.setItalic(true);
+        painter->setFont(newFont);
+        painter->drawText(rectApp, Qt::AlignCenter, textApp);
+        painter->setFont(oldFont);
+        drawRect.adjust(pixelsApp, 0, 0, 0);
+    }
+
     // category
     if (!altCategory.isEmpty())
     {
@@ -94,6 +109,11 @@ QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInde
     width += option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXX");
     width += option.fontMetrics.horizontalAdvance(QString("X[%1]X").arg(Priority::PRIO_INFORMATION));
     width += option.fontMetrics.horizontalAdvance(index.data(MODELROLE_MESSAGE).toString());
+
+    if (!altApp.isEmpty())
+    {
+        width += qMax(150, option.fontMetrics.horizontalAdvance(QString("XX[%1]XX").arg(altApp)));
+    }
 
     if (!altCategory.isEmpty())
     {

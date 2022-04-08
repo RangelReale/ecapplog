@@ -51,6 +51,14 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         altCategory = originalCategory;
         categoryNameComplete = QString("%1 [%2]").arg(categoryName, originalCategory);
     }
+    if (!_groupCategories)
+    {
+        auto findapp = _applicationlist.find(appName);
+        if (findapp != _applicationlist.end())
+        {
+            _groupCategories = findapp->second->groupCategories();
+        }
+    }
     if (_groupCategories) 
     {
         altCategory = categoryNameComplete;
@@ -216,6 +224,20 @@ void Data::setGroupCategories(bool value)
     _groupCategories = value;
 }
 
+bool Data::getApplicationGroupCategories(const QString &appName) const
+{
+    auto findapp = _applicationlist.find(appName);
+    if (findapp == _applicationlist.end()) return false;
+    return findapp->second->groupCategories();
+}
+
+void Data::setApplicationGroupCategories(const QString &appName, bool value)
+{
+    auto findapp = _applicationlist.find(appName);
+    if (findapp == _applicationlist.end()) return;
+    findapp->second->setGroupCategories(value);
+}
+
 bool Data::getPaused() const
 {
     return _paused;
@@ -248,7 +270,8 @@ LogModel *Data_Category::model()
 // Data_Application
 //
 
-Data_Application::Data_Application(const QString &name) : _name(name), _categorylist() {}
+Data_Application::Data_Application(const QString &name) : _name(name), _groupCategories(false), 
+    _categorylist() {}
 
 std::shared_ptr<Data_Category> Data_Application::findCategory(const QString &categoryName)
 {

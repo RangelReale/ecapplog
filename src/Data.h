@@ -38,12 +38,15 @@ public:
     Data_Application(const QString &name);
 
     const QString &name() { return _name; }
+    bool groupCategories() const { return _groupCategories; }
+    void setGroupCategories(bool value) { _groupCategories = value; }
 
     void addCategory(std::shared_ptr<Data_Category> category);
     std::shared_ptr<Data_Category> findCategory(const QString &categoryName);
     bool removeCategory(const QString &categoryName);
 private:
     QString _name;
+    bool _groupCategories;
 
     typedef std::map<QString, std::shared_ptr<Data_Category> > categorylist_t;
     categorylist_t _categorylist;
@@ -112,6 +115,10 @@ public:
 
     bool getGroupCategories() const;
     void setGroupCategories(bool value);
+
+    bool getApplicationGroupCategories(const QString &appName) const;
+    void setApplicationGroupCategories(const QString &appName, bool value);
+
     bool getPaused() const;
     void setPaused(bool value);
     QStringList filterNames() const;

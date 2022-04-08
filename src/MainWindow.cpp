@@ -222,6 +222,15 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 
 	int tabIndex = tabBar->tabAt(point);
 	QMenu menu(this);
+
+	QString appName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_APPNAME).toString());
+	bool appGroupCategories = _data.getApplicationGroupCategories(appName);
+
+	QAction *groupCategories = menu.addAction("&Group categories");
+	groupCategories->setCheckable(true);
+	groupCategories->setChecked(appGroupCategories);
+
+	menu.addSeparator();
 	QAction *newWindow = menu.addAction(tr("Move to new window"));
 	menu.addSeparator();
 	QMenu moveTo(tr("Move to..."), this);
@@ -240,6 +249,10 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 		if (selectedItem == newWindow)
 		{
 			targetTabWidget = createWindow();
+		}
+		else if (selectedItem == groupCategories)
+		{
+			_data.setApplicationGroupCategories(appName, !appGroupCategories);
 		}
 		else
 		{
