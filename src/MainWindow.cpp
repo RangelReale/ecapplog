@@ -124,6 +124,7 @@ QTabWidget *MainWindow::createWindow()
 {
 	QTabWidget *tabs = new TabWidget;
 	tabs->setTabsClosable(true);
+	tabs->setMovable(true);
 	tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	connect(tabs, SIGNAL(tabCloseRequested(int)), this, SLOT(applicationTabClose(int)));
