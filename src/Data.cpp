@@ -51,15 +51,16 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         altCategory = originalCategory;
         categoryNameComplete = QString("%1 [%2]").arg(categoryName, originalCategory);
     }
-    if (!_groupCategories)
+    bool groupCategories = _groupCategories;
+    if (!groupCategories)
     {
         auto findapp = _applicationlist.find(appName);
         if (findapp != _applicationlist.end())
         {
-            _groupCategories = findapp->second->groupCategories();
+            groupCategories = findapp->second->groupCategories();
         }
     }
-    if (_groupCategories) 
+    if (groupCategories) 
     {
         altCategory = categoryNameComplete;
         logCategory = "ALL";

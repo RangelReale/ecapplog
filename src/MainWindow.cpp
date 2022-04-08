@@ -243,16 +243,18 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 	QAction *selectedItem = menu.exec(tabBar->mapToGlobal(point));
 	if (selectedItem)
 	{
+		if (selectedItem == groupCategories)
+		{
+			_data.setApplicationGroupCategories(appName, !appGroupCategories);
+			return;
+		}
+
 		ads::CDockWidget *w = nullptr;
 		QTabWidget *targetTabWidget = nullptr;
 
 		if (selectedItem == newWindow)
 		{
 			targetTabWidget = createWindow();
-		}
-		else if (selectedItem == groupCategories)
-		{
-			_data.setApplicationGroupCategories(appName, !appGroupCategories);
 		}
 		else
 		{
