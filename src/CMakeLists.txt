@@ -51,6 +51,8 @@ set(SRCS
 	LogDelegate.cpp
 )
 
+set(SRCS ${SRCS} resources/ecapplog.qrc)
+
 get_target_property(_qmake_executable Qt6::qmake IMPORTED_LOCATION)
 get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
 find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
@@ -79,25 +81,23 @@ endif()
 # Executable: console
 add_executable(ecapplog_console
 	${SRCS}
-	${RCC_CONSOLE_SRCS}
 )
 set_target_properties(ecapplog_console PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/console
+	LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/console
 )
-qt6_add_resources(ecapplog_console "qrc_console" PREFIX "/" FILES resources/ecapplog.qrc)
 target_link_libraries(ecapplog_console Qt6::Widgets Qt6::Network qtadvanceddocking)
 
 # Executable: main
 add_executable(ecapplog WIN32 MACOSX_BUNDLE
 	${SRCS}
-	${RCC_SRCS}
 )
 set_target_properties(ecapplog PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
 )
-qt6_add_resources(ecapplog "qrc" PREFIX "/" FILES resources/ecapplog.qrc)
 target_link_libraries(ecapplog Qt6::Widgets Qt6::Network qtadvanceddocking)
 
 if (WIN32)
