@@ -79,7 +79,7 @@ public:
     Data_Filter_GroupBy groupBy() const { return _groupby; }
     void setGroupBy(Data_Filter_GroupBy value) { _groupby = value; }
 
-    void toogleFilter(const QString &appName, const QString &categoryName);
+    bool toggleFilter(const QString &appName, const QString &categoryName);
     void clearFilter();
     bool isFilter(const QString &appName, const QString &categoryName);
     QString filterCategoryName(const QString &appName, const QString &categoryName);
@@ -108,7 +108,7 @@ public:
     void removeApplication(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
 
-    void toogleFilter(const QString &filterName, const QString &appName, const QString &categoryName);
+    void toggleFilter(const QString &filterName, const QString &appName, const QString &categoryName);
     void setFilterGroupBy(const QString &filterName, Data_Filter_GroupBy groupby);
 
     void removeAllApplications();

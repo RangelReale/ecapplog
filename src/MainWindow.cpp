@@ -224,8 +224,20 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 	QMenu menu(this);
 
 	QString appName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_APPNAME).toString());
-	bool appGroupCategories = _data.getApplicationGroupCategories(appName);
 
+	QMenu filterMenu(tr("Toggle application on filter"), this);
+	if (!appName.startsWith("FILTER")) 
+	{
+		for (auto filter : _data.filterNames())
+		{
+			QAction *filterItem = filterMenu.addAction(filter);
+			filterItem->setProperty("ECL_FILTER", true);
+		}
+		menu.addMenu(&filterMenu);
+		menu.addSeparator();
+	}
+
+	bool appGroupCategories = _data.getApplicationGroupCategories(appName);
 	QAction *groupCategories = menu.addAction("&Group categories");
 	groupCategories->setCheckable(true);
 	groupCategories->setChecked(appGroupCategories);
@@ -246,6 +258,12 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 		if (selectedItem == groupCategories)
 		{
 			_data.setApplicationGroupCategories(appName, !appGroupCategories);
+			return;
+		}
+		if (selectedItem->property("ECL_FILTER").isValid())
+		{
+			QString filterName = selectedItem->text();
+			_data.toggleFilter(filterName, appName, "");
 			return;
 		}
 
@@ -291,7 +309,7 @@ void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 	QString appName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_APPNAME).toString());
 	if (appName.startsWith("FILTER")) return;
 
-	QMenu filterMenu(tr("Add category to filter"), this);
+	QMenu filterMenu(tr("Toggle category on filter"), this);
 	for (auto filter : _data.filterNames())
 	{
 		filterMenu.addAction(filter);
@@ -303,7 +321,7 @@ void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 	{
 		QString filterName = selectedItem->text();
 		QString categoryName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_CATEGORYNAME).toString());
-		_data.toogleFilter(filterName, appName, categoryName);
+		_data.toggleFilter(filterName, appName, categoryName);
 	}
 }
 
@@ -457,7 +475,13 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	layout->addSpacing(6);
 	layout->addWidget(category->logs);
 
-	int idx = app->categories->addTab(categoryParent, categoryName);
+	int idx;
+	if (categoryName.isUpper()) {
+		// put all-uppercase categories in front
+		idx = app->categories->insertTab(0, categoryParent, categoryName);
+	} else {
+		idx = app->categories->addTab(categoryParent, categoryName);
+	}
 	category->logsamount->setStyleSheet("QLabel{border-radius: 25px; background: red; color: white;}");
 	category->logsamount->setAlignment(Qt::AlignCenter);
 	app->categories->tabBar()->setTabButton(idx, QTabBar::RightSide, category->logsamount);

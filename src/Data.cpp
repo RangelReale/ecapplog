@@ -198,12 +198,27 @@ std::shared_ptr<Data_Filter> Data::createFilter(const QString &filterName)
     return filter;
 }
 
-void Data::toogleFilter(const QString &filterName, const QString &appName, const QString &categoryName)
+void Data::toggleFilter(const QString &filterName, const QString &appName, const QString &categoryName)
 {
     auto findfilter = _filterlist.find(filterName);
     if (findfilter == _filterlist.end()) return;
 
-    findfilter->second->toogleFilter(appName, categoryName);
+    bool added = findfilter->second->toggleFilter(appName, categoryName);
+    QString priority(Priority::PRIO_INFORMATION);
+    if (!added) priority = Priority::PRIO_TRACE;
+
+    QString filterData;
+    if (categoryName.isEmpty())
+    {
+        filterData = appName;
+    } 
+    else 
+    {
+        filterData = QString("%1 - %2").arg(appName).arg(categoryName);
+    }
+
+    internalLog(findfilter->second->name(), QDateTime::currentDateTime(), "FILTER", priority,
+        QString("'%1' %2 filter").arg(filterData).arg(added?"added to":"removed from"));
 }
 
 void Data::setFilterGroupBy(const QString &filterName, Data_Filter_GroupBy groupby)
@@ -298,11 +313,15 @@ bool Data_Application::removeCategory(const QString &categoryName)
 Data_Filter::Data_Filter(const QString &name) : _name(name), _groupby(Data_Filter_GroupBy::All), 
     _filterlist() {}
 
-void Data_Filter::toogleFilter(const QString &appName, const QString &categoryName)
+bool Data_Filter::toggleFilter(const QString &appName, const QString &categoryName)
 {
     QString pAppName(parseAppName(appName));
     QString find = QString("%1$$%2").arg(pAppName).arg(categoryName);
-    if (_filterlist.erase(find) == 0) _filterlist.insert(find);
+    if (_filterlist.erase(find) == 0) {
+        _filterlist.insert(find);
+        return true;
+    }
+    return false;
 }
 
 void Data_Filter::clearFilter()
@@ -314,6 +333,9 @@ bool Data_Filter::isFilter(const QString &appName, const QString &categoryName)
 {
     QString pAppName(parseAppName(appName));
     QString find = QString("%1$$%2").arg(pAppName).arg(categoryName);
+    if (_filterlist.find(find) != _filterlist.end()) return true;
+    // find with only application name
+    find = QString("%1$$%2").arg(pAppName).arg("");
     return _filterlist.find(find) != _filterlist.end();
 }
 
