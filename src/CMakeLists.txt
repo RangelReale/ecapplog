@@ -11,6 +11,7 @@ endif()
 
 
 SET(EXTERNAL_SOURCE_DIR external)
+set(COMPONENT_NAME_MAIN main)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -99,6 +100,33 @@ set_target_properties(ecapplog PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
 )
 target_link_libraries(ecapplog Qt6::Widgets Qt6::Network qtadvanceddocking)
+
+if (WIN32)
+	install(TARGETS ecapplog 
+		DESTINATION ${CMAKE_INSTALL_BINDIR}
+		BUNDLE DESTINATION bin
+		COMPONENT ${COMPONENT_NAME_MAIN}
+	)
+
+	include(InstallRequiredSystemLibraries)
+	set(CPACK_GENERATOR "IFW")
+	set(CPACK_PACKAGE_VERSION_MAJOR "1")
+	set(CPACK_PACKAGE_VERSION_MINOR "0")
+	include(CPACK)
+	include(CPackIFW)
+
+	CPACK_ADD_COMPONENT(${COMPONENT_NAME_MAIN})
+
+	if(WIN32)
+		configure_file("${PROJECT_SOURCE_DIR}/cmake/deploy-qt-windows.cmake.in" "${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake" @ONLY)
+		set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake)
+	endif()
+
+	if(APPLE)
+		configure_file("${PROJECT_SOURCE_DIR}/cmake/deploy-qt-mac.cmake.in" "${CMAKE_BINARY_DIR}/deploy-qt-mac.cmake" @ONLY)
+		set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake)
+	endif()
+endif()
 
 if (WIN32)
 	add_custom_command(TARGET ecapplog POST_BUILD
