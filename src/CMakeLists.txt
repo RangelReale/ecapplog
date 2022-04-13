@@ -13,7 +13,6 @@ endif()
 option(ECAPPLOG_BUILD_INSTALLER "Build installer" OFF)
 
 SET(EXTERNAL_SOURCE_DIR external)
-set(COMPONENT_NAME_MAIN main)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -88,8 +87,8 @@ add_executable(ecapplog_console
 set_target_properties(ecapplog_console PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
-	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/console
-	LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/console
+	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
+	LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 )
 target_link_libraries(ecapplog_console Qt6::Widgets Qt6::Network qtadvanceddocking)
 
@@ -104,23 +103,82 @@ set_target_properties(ecapplog PROPERTIES
 target_link_libraries(ecapplog Qt6::Widgets Qt6::Network qtadvanceddocking)
 
 if (ECAPPLOG_BUILD_INSTALLER)
-	install(TARGETS ecapplog 
-		DESTINATION ${CMAKE_INSTALL_BINDIR}
-		BUNDLE DESTINATION bin
-		COMPONENT ${COMPONENT_NAME_MAIN}
-	)
+  if(UNIX AND NOT APPLE)
+      install(TARGETS ecapplog RUNTIME DESTINATION bin)
+  elseif(WIN32)
+      install(TARGETS ecapplog RUNTIME DESTINATION bin)
+  elseif(APPLE)
+      set(CMAKE_MACOSX_BUNDLE ON)
+      set(CMAKE_MACOSX_RPATH ON)
+      install(TARGETS ecapplog BUNDLE DESTINATION .
+                                RUNTIME DESTINATION .)
+      set_source_files_properties(resources/ecapplog.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+      set_target_properties(ecapplog
+                            PROPERTIES
+                            MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_NAME}"
+                            MACOSX_BUNDLE_INFO_STRING "${PROJECT_NAME} Copyright (c) 2022 Example@Example.com"
+                            MACOSX_BUNDLE_ICON_FILE ecapplog.icns
+                            MACOSX_BUNDLE_GUI_IDENTIFIER "${PROJECT_NAME}"
+                            MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}"
+                            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+                            MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+                            MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2022 Example@Example.com"
+                            )
+  endif()
 
-	set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
-	set(CPACK_COMPONENTS_ALL main)
+  #set(desktop.path applications)
+  #set(desktop.files resources/example.desktop)
+  #set(icon.path icons/hicolor/64x64/apps)
+  #set(icon.files resources/icon64.png)
+  #set(iconsvg.path icons/hicolor/scalable/apps)
+  #set(iconsvg.files resources/icon.svg)
+  #foreach(items IN ITEMS desktop icon iconsvg)
+      #install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${${items}.files}
+              #DESTINATION share/${${items}.path}
+              #PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+  #endforeach()
+
+  include(Packaging)
+endif()
+
+if (OFF)
+	message(STATUS "HERE!!")
+	install(TARGETS ecapplog 
+		RUNTIME DESTINATION ecapplog
+		COMPONENT ecapplog_installer
+		BUNDLE DESTINATION ecapplog
+		COMPONENT ecapplog_installer
+	)
+	install(DIRECTORY "${CMAKE_INSTALL_BINDIR}" DESTINATION bin)
+
+	set(CPACK_COMPONENTS_ALL ecapplog_installer)
 
 	include(InstallRequiredSystemLibraries)
 	set(CPACK_GENERATOR "IFW")
 	set(CPACK_PACKAGE_VERSION_MAJOR "1")
 	set(CPACK_PACKAGE_VERSION_MINOR "0")
+	set(CPACK_PACKAGE_DIRECTORY "${CMAKE_INSTALL_BINDIR}")
+	set(CPACK_PACKAGE_EXECUTABLES "${PROJECT_NAME}" "ECAppLog")
+	set(CPACK_CREATE_DESKTOP_LINKS "${PROJECT_NAME}")
+	set(CPACK_IFW_PACKAGE_START_MENU_DIRECTORY "ECAppLog")
+	set(CPACK_STRIP_FILES TRUE)
 	include(CPACK)
 	include(CPackIFW)
 
-	CPACK_ADD_COMPONENT(${COMPONENT_NAME_MAIN})
+	CPACK_ADD_COMPONENT(ecapplog_installer
+        DISPLAY_NAME "ECAppLog"
+        DESCRIPTION "Install me"
+        REQUIRED	
+	)
+
+    cpack_ifw_configure_component(
+        ecapplog_installer
+        FORCED_INSTALLATION
+        NAME com.rangelreale.ecapplog
+        VERSION ${PROJECT_VERSION} # Version of component
+        LICENSES License ${PROJECT_SOURCE_DIR}/LICENSE
+        DEFAULT TRUE
+    )
 
 	if(WIN32)
 		configure_file("${PROJECT_SOURCE_DIR}/cmake/deploy-qt-windows.cmake.in" "${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake" @ONLY)
