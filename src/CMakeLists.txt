@@ -10,6 +10,8 @@ if(CMAKE_VERSION VERSION_LESS "3.7.0")
 endif()
 
 
+option(ECAPPLOG_BUILD_INSTALLER "Build installer" OFF)
+
 SET(EXTERNAL_SOURCE_DIR external)
 set(COMPONENT_NAME_MAIN main)
 
@@ -101,12 +103,15 @@ set_target_properties(ecapplog PROPERTIES
 )
 target_link_libraries(ecapplog Qt6::Widgets Qt6::Network qtadvanceddocking)
 
-if (WIN32)
+if (ECAPPLOG_BUILD_INSTALLER)
 	install(TARGETS ecapplog 
 		DESTINATION ${CMAKE_INSTALL_BINDIR}
 		BUNDLE DESTINATION bin
 		COMPONENT ${COMPONENT_NAME_MAIN}
 	)
+
+	set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+	set(CPACK_COMPONENTS_ALL main)
 
 	include(InstallRequiredSystemLibraries)
 	set(CPACK_GENERATOR "IFW")
