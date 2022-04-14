@@ -109,14 +109,15 @@ target_link_libraries(ecapplog Qt6::Widgets Qt6::Network qtadvanceddocking)
 
 if (ECAPPLOG_BUILD_INSTALLER)
   if(UNIX AND NOT APPLE)
-      install(TARGETS ecapplog RUNTIME DESTINATION bin)
+      install(TARGETS ecapplog RUNTIME DESTINATION bin COMPONENT main)
   elseif(WIN32)
-      install(TARGETS ecapplog RUNTIME DESTINATION bin)
+      install(TARGETS ecapplog RUNTIME DESTINATION bin COMPONENT main)
   elseif(APPLE)
       set(CMAKE_MACOSX_BUNDLE ON)
       set(CMAKE_MACOSX_RPATH ON)
       install(TARGETS ecapplog BUNDLE DESTINATION .
-                                RUNTIME DESTINATION .)
+                                RUNTIME DESTINATION .
+                                COMPONENT main)
       set_source_files_properties(resources/ecapplog.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
       set_target_properties(ecapplog
                             PROPERTIES

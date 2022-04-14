@@ -198,4 +198,22 @@ else()
     set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/src/resources/ecapplog.png")
 endif()
 
+set(CPACK_COMPONENTS_ALL main)
+set(CPACK_IFW_PACKAGE_START_MENU_DIRECTORY ECAppLog)
 include(CPack)
+include(CPackIFW)
+
+CPACK_ADD_COMPONENT(main
+    DISPLAY_NAME "ECAppLog"
+    DESCRIPTION "Install me"
+    REQUIRED	
+)
+
+cpack_ifw_configure_component(
+    main
+    FORCED_INSTALLATION
+    NAME com.rangelreale.ecapplog
+    VERSION ${PROJECT_VERSION} # Version of component
+    LICENSES License ${PROJECT_SOURCE_DIR}/LICENSE
+    DEFAULT TRUE
+)
