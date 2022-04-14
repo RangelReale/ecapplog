@@ -16,7 +16,7 @@ SET(EXTERNAL_SOURCE_DIR external)
 
 include(FetchContent)
 FetchContent_Declare(
-  ADS
+  ads
   GIT_REPOSITORY https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System
   GIT_TAG        3.8.2
 )
@@ -24,7 +24,12 @@ FetchContent_Declare(
 set(ADS_VERSION 3.8.2)
 set(BUILD_STATIC ON CACHE BOOL "Build static")
 set(BUILD_EXAMPLES OFF CACHE BOOL "Don't build dock examples")
-FetchContent_MakeAvailable(ADS)
+FetchContent_GetProperties(ads)
+if(NOT ads_POPULATED)
+  FetchContent_Populate(ads)
+  add_subdirectory(${ads_SOURCE_DIR} ${ads_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+#FetchContent_MakeAvailable(ADS)
 
 # Set additional project information
 set(COMPANY "Rangel Reale")
@@ -141,70 +146,20 @@ if (ECAPPLOG_BUILD_INSTALLER)
   include(Packaging)
 endif()
 
-if (OFF)
-	message(STATUS "HERE!!")
-	install(TARGETS ecapplog 
-		RUNTIME DESTINATION ecapplog
-		COMPONENT ecapplog_installer
-		BUNDLE DESTINATION ecapplog
-		COMPONENT ecapplog_installer
-	)
-	install(DIRECTORY "${CMAKE_INSTALL_BINDIR}" DESTINATION bin)
+# if (WIN32)
+# 	add_custom_command(TARGET ecapplog POST_BUILD
+# 		COMMAND "${CMAKE_COMMAND}" -E
+# 			env PATH="${_qt_bin_dir}" "${WINDEPLOYQT_EXECUTABLE}"
+# 				"$<TARGET_FILE:ecapplog>"
+# 		COMMENT "Running windeployqt..."
+# 	)
+# endif()
 
-	set(CPACK_COMPONENTS_ALL ecapplog_installer)
-
-	include(InstallRequiredSystemLibraries)
-	set(CPACK_GENERATOR "IFW")
-	set(CPACK_PACKAGE_VERSION_MAJOR "1")
-	set(CPACK_PACKAGE_VERSION_MINOR "0")
-	set(CPACK_PACKAGE_DIRECTORY "${CMAKE_INSTALL_BINDIR}")
-	set(CPACK_PACKAGE_EXECUTABLES "${PROJECT_NAME}" "ECAppLog")
-	set(CPACK_CREATE_DESKTOP_LINKS "${PROJECT_NAME}")
-	set(CPACK_IFW_PACKAGE_START_MENU_DIRECTORY "ECAppLog")
-	set(CPACK_STRIP_FILES TRUE)
-	include(CPACK)
-	include(CPackIFW)
-
-	CPACK_ADD_COMPONENT(ecapplog_installer
-        DISPLAY_NAME "ECAppLog"
-        DESCRIPTION "Install me"
-        REQUIRED	
-	)
-
-    cpack_ifw_configure_component(
-        ecapplog_installer
-        FORCED_INSTALLATION
-        NAME com.rangelreale.ecapplog
-        VERSION ${PROJECT_VERSION} # Version of component
-        LICENSES License ${PROJECT_SOURCE_DIR}/LICENSE
-        DEFAULT TRUE
-    )
-
-	if(WIN32)
-		configure_file("${PROJECT_SOURCE_DIR}/cmake/deploy-qt-windows.cmake.in" "${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake" @ONLY)
-		set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake)
-	endif()
-
-	if(APPLE)
-		configure_file("${PROJECT_SOURCE_DIR}/cmake/deploy-qt-mac.cmake.in" "${CMAKE_BINARY_DIR}/deploy-qt-mac.cmake" @ONLY)
-		set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_BINARY_DIR}/deploy-qt-windows.cmake)
-	endif()
-endif()
-
-if (WIN32)
-	add_custom_command(TARGET ecapplog POST_BUILD
-		COMMAND "${CMAKE_COMMAND}" -E
-			env PATH="${_qt_bin_dir}" "${WINDEPLOYQT_EXECUTABLE}"
-				"$<TARGET_FILE:ecapplog>"
-		COMMENT "Running windeployqt..."
-	)
-endif()
-
-if (APPLE)
-	add_custom_command(TARGET ecapplog POST_BUILD
-		COMMAND "${MACDEPLOYQT_EXECUTABLE}"
-			"$<TARGET_FILE_DIR:ecapplog>/../.."
-			-always-overwrite
-		COMMENT "Running macdeployqt..."
-	)
-endif()
+# if (APPLE)
+# 	add_custom_command(TARGET ecapplog POST_BUILD
+# 		COMMAND "${MACDEPLOYQT_EXECUTABLE}"
+# 			"$<TARGET_FILE_DIR:ecapplog>/../.."
+# 			-always-overwrite
+# 		COMMENT "Running macdeployqt..."
+# 	)
+# endif()
