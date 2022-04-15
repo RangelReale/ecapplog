@@ -51,12 +51,27 @@ LogModel::LogModel(QObject *parent)
 
 }
 
+void LogModel::addLog(std::shared_ptr<LogModelItem> item)
+{
+    beginInsertRows(QModelIndex(), 0, 0);
+    lst.insert(0, item);
+    endInsertRows();
+}
+
 void LogModel::addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
 {
-    beginInsertRows(QModelIndex(), 0, 0);
-    lst.insert(0, std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source, 
+    addLog(std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source, 
         altApp, altCategory, isExtraCategory));
+}
+
+void LogModel::addLogs(const std::list<std::shared_ptr<LogModelItem>>& item_list)
+{
+    beginInsertRows(QModelIndex(), 0, item_list.size() - 1);
+    for (auto item : item_list)
+    {
+        lst.insert(0, item);
+    }
     endInsertRows();
 }
 

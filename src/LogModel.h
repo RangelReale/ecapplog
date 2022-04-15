@@ -9,6 +9,8 @@
 #include <QAbstractListModel>
 #include <QDateTime>
 
+#include <list>
+
 #define MODELROLE_APP           	Qt::UserRole + 0
 #define MODELROLE_TIME          	Qt::UserRole + 1
 #define MODELROLE_CATEGORY      	Qt::UserRole + 2
@@ -62,9 +64,11 @@ public:
 public:
     explicit LogModel(QObject *parent = 0);
 
+	void addLog(std::shared_ptr<LogModelItem> item);
 	void addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     	const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory);
 	void removeLog(int amount);
+	void addLogs(const std::list<std::shared_ptr<LogModelItem>> &item_list);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 
