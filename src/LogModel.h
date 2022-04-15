@@ -9,7 +9,7 @@
 #include <QAbstractListModel>
 #include <QDateTime>
 
-#include <list>
+#include <deque>
 
 #define MODELROLE_APP           	Qt::UserRole + 0
 #define MODELROLE_TIME          	Qt::UserRole + 1
@@ -68,7 +68,7 @@ public:
 	void addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     	const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory);
 	void removeLog(int amount);
-	void addLogs(const std::list<std::shared_ptr<LogModelItem>> &item_list);
+	void addLogs(const std::deque<std::shared_ptr<LogModelItem>> &item_list);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 

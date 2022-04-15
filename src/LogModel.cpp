@@ -65,9 +65,10 @@ void LogModel::addLog(const QString &appName, const QDateTime &time, const QStri
         altApp, altCategory, isExtraCategory));
 }
 
-void LogModel::addLogs(const std::list<std::shared_ptr<LogModelItem>>& item_list)
+void LogModel::addLogs(const std::deque<std::shared_ptr<LogModelItem>>& item_list)
 {
-    beginInsertRows(QModelIndex(), 0, item_list.size() - 1);
+    if (item_list.empty()) return;
+    beginInsertRows(QModelIndex(), 0, static_cast<int>(item_list.size() - 1));
     for (auto item : item_list)
     {
         lst.insert(0, item);
