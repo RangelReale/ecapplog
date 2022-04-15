@@ -58,9 +58,9 @@ public:
 
     static MainWindow *instance() { return self; }
 public Q_SLOTS:
-	void onJsonReceived(const ApplicationInfo &appInfo, quint8 cmd, const QJsonObject &jsonData);
-	void onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error);
-	void onError(const QTcpSocket &clientSocket, const QString &error);
+	void onJsonReceived(const QString &appName, quint8 cmd, const QJsonObject &jsonData);
+	void onJsonError(const QString& appName, const QJsonParseError &error);
+	void onError(const QString& appName, const QString &error);
 
     void onNewApplication(const QString &appName);
     void onDelApplication(const QString &appName);
@@ -89,11 +89,9 @@ public Q_SLOTS:
 	void logListContextMenu(const QPoint &point);
 	void logListDoubleClicked(const QModelIndex&);
 private:
-	QString applicationName(const ApplicationInfo& appInfo);
-	QString applicationName(const QTcpSocket &clientSocket, const QString& connname);
 	QString formatJSON(const QString &json);
 
-	void onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jsonData);
+	void onCmdLog(const QString& appName, const QJsonObject &jsonData);
 
 	Server _server;
 	Data _data;

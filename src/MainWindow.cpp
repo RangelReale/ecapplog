@@ -44,9 +44,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	_dockManager = new ads::CDockManager(this);
 
 	// server
-	connect(&_server, SIGNAL(onJsonReceived(const ApplicationInfo&, quint8, const QJsonObject&)), this, SLOT(onJsonReceived(const ApplicationInfo&, quint8, const QJsonObject&)));
-	connect(&_server, SIGNAL(onJsonError(const ApplicationInfo&, const QJsonParseError&)), this, SLOT(onJsonError(const ApplicationInfo&, const QJsonParseError&)));
-	connect(&_server, SIGNAL(onError(const QTcpSocket&, const QString&)), this, SLOT(onError(const QTcpSocket&, const QString&)));
+	connect(&_server, &Server::onJsonReceived, this, &MainWindow::onJsonReceived);
+	connect(&_server, &Server::onJsonError, this, &MainWindow::onJsonError);
+	connect(&_server, &Server::onError, this, &MainWindow::onError);
 
 	if (!_server.startServer()) {
 		QMessageBox::critical(this, tr("Server"),
@@ -57,13 +57,13 @@ MainWindow::MainWindow(QWidget *parent) :
 	}
 
 	// data
-	connect(&_data, SIGNAL(newApplication(const QString&)), this, SLOT(onNewApplication(const QString&)));
-	connect(&_data, SIGNAL(delApplication(const QString&)), this, SLOT(onDelApplication(const QString&)));
-	connect(&_data, SIGNAL(newCategory(const QString&, const QString &, QAbstractListModel *)), this, SLOT(onNewCategory(const QString&, const QString &, QAbstractListModel *)));
-	connect(&_data, SIGNAL(delCategory(const QString&, const QString &)), this, SLOT(onDelCategory(const QString&, const QString &)));
-	connect(&_data, SIGNAL(logAmount(const QString&, const QString &, int)), this, SLOT(onLogAmount(const QString&, const QString &, int)));
-	connect(&_data, SIGNAL(newFilter(const QString&)), this, SLOT(onNewFilter(const QString&)));
-	connect(&_data, SIGNAL(filterChanged(const QString&)), this, SLOT(onFilterChanged(const QString&)));
+	connect(&_data, &Data::newApplication, this, &MainWindow::onNewApplication);
+	connect(&_data, &Data::delApplication, this, &MainWindow::onDelApplication);
+	connect(&_data, &Data::newCategory, this, &MainWindow::onNewCategory);
+	connect(&_data, &Data::delCategory, this, &MainWindow::onDelCategory);
+	connect(&_data, &Data::logAmount, this, &MainWindow::onLogAmount);
+	connect(&_data, &Data::newFilter, this, &MainWindow::onNewFilter);
+	connect(&_data, &Data::filterChanged, this, &MainWindow::onFilterChanged);
 
 	// menu: EDIT
 	QMenu *editMenu = new QMenu("&Edit", this);
@@ -106,18 +106,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	// initialization
 	createWindow();
 	menuFilterNew();
-}
-
-QString MainWindow::applicationName(const ApplicationInfo& appInfo)
-{
-	return applicationName(*appInfo.socket(), appInfo.getName());
-}
-
-QString MainWindow::applicationName(const QTcpSocket &clientSocket, const QString& connname)
-{
-	if (connname.isEmpty())
-		return QString("%1:%2").arg(clientSocket.peerAddress().toString()).arg(clientSocket.peerPort());
-	return connname;
 }
 
 QTabWidget *MainWindow::createWindow()
@@ -372,34 +360,34 @@ void MainWindow::logListDoubleClicked(const QModelIndex &)
 	logListDetail(list);
 }
 
-void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject &jsonData)
+void MainWindow::onJsonReceived(const QString& appName, quint8 cmd, const QJsonObject &jsonData)
 {
 	switch (cmd)
 	{
 	case CMD_LOG:
-		_data.log(applicationName(appInfo), jsonData);
+		_data.log(appName, jsonData);
 		break;
 	default:
-		_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+		_data.log(appName, QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
 			QString("Unknown command: %1").arg(cmd));
 	}
 }
 
-void MainWindow::onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error)
+void MainWindow::onJsonError(const QString& appName, const QJsonParseError &error)
 {
-	_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+	_data.log(appName, QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
 		QString("JSON parse error: %1").arg(error.errorString()));
 }
 
-void MainWindow::onError(const QTcpSocket &clientSocket, const QString &error)
+void MainWindow::onError(const QString& appName, const QString &error)
 {
-	_data.log(applicationName(clientSocket, ""), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+	_data.log(appName, QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
 		QString("Error: %1").arg(error));
 }
 
-void MainWindow::onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jsonData)
+void MainWindow::onCmdLog(const QString& appName, const QJsonObject &jsonData)
 {
-	_data.log(applicationName(appInfo), jsonData);
+	_data.log(appName, jsonData);
 }
 
 void MainWindow::onNewApplication(const QString &appName)
