@@ -51,6 +51,7 @@ set(SRCS
 	LogModel.cpp
 	LogDelegate.h
 	LogDelegate.cpp
+	Util.h
 )
 
 set(SRCS ${SRCS} resources/ecapplog.qrc)

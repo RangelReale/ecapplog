@@ -62,6 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(&_data, &Data::newCategory, this, &MainWindow::onNewCategory);
 	connect(&_data, &Data::delCategory, this, &MainWindow::onDelCategory);
 	connect(&_data, &Data::logAmount, this, &MainWindow::onLogAmount);
+	connect(&_data, &Data::logItemsPerSecond, this, &MainWindow::onLogItemsPerSecond);
 	connect(&_data, &Data::newFilter, this, &MainWindow::onNewFilter);
 	connect(&_data, &Data::filterChanged, this, &MainWindow::onFilterChanged);
 
@@ -491,6 +492,19 @@ void MainWindow::onLogAmount(const QString &appName, const QString &categoryName
 	if (!category) return;
 
 	category->logsamount->setText(QString("%1").arg(amount));
+}
+
+void MainWindow::onLogItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond)
+{
+	/*
+	auto app = _applicationlist.find(appName);
+	if (app == _applicationlist.end()) return;
+
+	auto category = app->second->findCategory(categoryName);
+	if (!category) return;
+
+	category->logsamount->setText(QString("%1").arg(itemsPerSecond, 0, 'f', 1));
+	*/
 }
 
 void MainWindow::onNewFilter(const QString &filterName)

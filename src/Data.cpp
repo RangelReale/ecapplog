@@ -186,6 +186,7 @@ std::shared_ptr<Data_Application> Data::createApplication(const QString &appName
 {
     auto app = std::make_shared<Data_Application>(appName);
     connect(app.get(), &Data_Application::logAmount, this, &Data::logAmount);
+    connect(app.get(), &Data_Application::logItemsPerSecond, this, &Data::logItemsPerSecond);
     _applicationlist[appName] = app;
     emit newApplication(appName);
     return app;
@@ -292,7 +293,7 @@ void Data::checkExpiredLog()
 // Data_Category
 //
 
-Data_Category::Data_Category(const QString &name) : _name(name), _model(), _logs(), _elapsed() {}
+Data_Category::Data_Category(const QString &name) : _name(name), _model(), _logs(), _elapsed(), _ips() {}
 
 LogModel *Data_Category::model()
 {
@@ -302,7 +303,12 @@ LogModel *Data_Category::model()
 bool Data_Category::addLog(std::shared_ptr<LogModelItem> item)
 {
     _logs.push_back(item);
-    if (_logs.size() > 10 || _elapsed.hasExpired(1000))
+    if (_ips.sample(1))
+    {
+        emit logItemsPerSecond(_name, _ips.avg());
+    }
+    // wait 10 items if more than 15 items/second, only show when accumulating 10 items
+    if (_logs.size() > 10 || _ips.avg() < 15)
     {
         addToModel();
         return true;
@@ -345,6 +351,7 @@ std::shared_ptr<Data_Category> Data_Application::findCategory(const QString &cat
 void Data_Application::addCategory(std::shared_ptr<Data_Category> category)
 {
     connect(category.get(), &Data_Category::logAmount, this, &Data_Application::categoryLogAmount);
+    connect(category.get(), &Data_Category::logItemsPerSecond, this, &Data_Application::categoryLogItemsPerSecond);
     _categorylist[category->name()] = category;
 }
 
@@ -364,6 +371,11 @@ void Data_Application::checkLogExpiration()
 void Data_Application::categoryLogAmount(const QString& categoryName, int amount)
 {
     emit logAmount(_name, categoryName, amount);
+}
+
+void Data_Application::categoryLogItemsPerSecond(const QString& categoryName, double itemsPerSecond)
+{
+    emit logItemsPerSecond(_name, categoryName, itemsPerSecond);
 }
 
 //

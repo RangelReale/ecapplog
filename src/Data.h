@@ -8,6 +8,7 @@
 
 #include "Config.h"
 #include "LogModel.h"
+#include "Util.h"
 
 #include <QString>
 #include <QJsonObject>
@@ -34,6 +35,7 @@ public:
     int checkLogExpiration();
 signals:
     void logAmount(const QString& categoryName, int amount);
+    void logItemsPerSecond(const QString& categoryName, double itemsPerSecond);
 protected:
     int addToModel();
 private:
@@ -42,6 +44,7 @@ private:
     QElapsedTimer _elapsed;
     typedef std::deque<std::shared_ptr<LogModelItem> > logs_t;
     logs_t _logs;
+    Util::ItemPerSecondChrono<10> _ips;
 };
 
 class Data_Application : public QObject
@@ -61,8 +64,10 @@ public:
     void checkLogExpiration();
 signals:
     void logAmount(const QString& appName, const QString& categoryName, int amount);
+    void logItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
 private slots:
     void categoryLogAmount(const QString& categoryName, int amount);
+    void categoryLogItemsPerSecond(const QString& categoryName, double itemsPerSecond);
 private:
     QString _name;
     bool _groupCategories;
@@ -148,6 +153,7 @@ signals:
     void newCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void delCategory(const QString &appName, const QString &categoryName);
     void logAmount(const QString &appName, const QString &categoryName, int amount);
+    void logItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
     void newFilter(const QString &filterName);
     void filterChanged(const QString &filterName);
 private slots:

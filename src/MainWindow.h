@@ -67,7 +67,8 @@ public Q_SLOTS:
     void onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void onDelCategory(const QString &appName, const QString &categoryName);
 	void onLogAmount(const QString &appName, const QString &categoryName, int amount);
-    void onNewFilter(const QString &filterName);
+	void onLogItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
+	void onNewFilter(const QString &filterName);
     void onFilterChanged(const QString &filterName);
 
 	QTabWidget *createWindow();
