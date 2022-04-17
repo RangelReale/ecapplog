@@ -81,7 +81,7 @@ if(UNIX AND NOT APPLE)
 elseif(WIN32)
     install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release)
 elseif(APPLE)
-    install(TARGETS ecapplog BUNDLE DESTINATION bin RUNTIME DESTINATION bin CONFIGURATIONS Release)
+    install(TARGETS ecapplog BUNDLE DESTINATION . RUNTIME DESTINATION bin CONFIGURATIONS Release)
     set_source_files_properties(resources/ecapplog.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(ecapplog
         PROPERTIES
@@ -94,4 +94,18 @@ elseif(APPLE)
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2022 Rangel Reale"
     )
+endif()
+
+if (ECAPPLOG_BUILD_INSTALLER)
+
+if (WIN32)
+    include(DeployQt)
+    windeployqt(ecapplog)
+endif()
+
+if (APPLE)
+    include(DeployQt)
+    macdeployqt(ecapplog)
+endif()
+
 endif()
