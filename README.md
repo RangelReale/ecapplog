@@ -16,7 +16,14 @@ Multiple windows can be created, and docked inside the main window, or float out
 
 Tabs (application and/or category) can be added to a filter, and shown together in a special `FILTER` application, grouped in single or multiple tabs.
 
-Right-clicking the tabs shows context menus with more options.
+Right-clicking the tabs and logs shows context menus with more options.
+
+## Features
+
+ * JSON parsing in worker thread
+ * Category items-per-second throttling, decrease amount of screen refreshs if high rate of logs
+ * Pause and resume
+ * Multiple windows and fiters
 
 ## Protocol
 

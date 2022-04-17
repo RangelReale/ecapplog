@@ -49,7 +49,7 @@ function(windeployqt target)
             env PATH="${_qt_bin_dir}" "${WINDEPLOYQT_EXECUTABLE}"
                 --no-opengl-sw
                 \"$<TARGET_FILE:${target}>\"
-                --dir ${PROJECT_BINARY_DIR}/deployqt
+                --dir ${PROJECT_BINARY_DIR}/deployqt_$<CONFIG>
         COMMENT "Deploying Qt..."
     )
 
@@ -57,7 +57,7 @@ function(windeployqt target)
     # Use "deployqt/" with a trailing slash so that CMake does not create a
     # "deployqt" directory in our destination directory
     install(
-        DIRECTORY ${PROJECT_BINARY_DIR}/deployqt/
+        DIRECTORY ${PROJECT_BINARY_DIR}/deployqt_Release/
         DESTINATION bin
     )
 endfunction()
