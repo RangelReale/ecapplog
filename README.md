@@ -49,8 +49,14 @@ This must be the first command sent after the connection is established. It sets
 ```
 
  * Time must ALWAYS be UTC with milliseconds, using this format: `yyyy-MM-ddThh:mm:ss.zzz`
-  * Priority must be one of: `TRACE`, `DEBUG`, `INFORMATION`, `NOTICE`, `WARNING`, `FATAL`, `CRITICAL`, `ERROR`
+ * Priority must be one of: `TRACE`, `DEBUG`, `INFORMATION`, `NOTICE`, `WARNING`, `FATAL`, `CRITICAL`, `ERROR`
  * If category is blank, it will be added to the `ALL` category
+
+ Optional fields:
+
+ * `source` [string]: sets the original source this log came from, for example, the JSON in the original format. This can be shown by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
+ * `original_category` [string]: if set, one extra field will be shown on the log with this field. Use this to indicate this log was redirected from another category.
+ * `extra_categories` [string array]: duplicate the log in more categories besides the main one.
 
 ## Clients
 
