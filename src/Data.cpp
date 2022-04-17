@@ -168,6 +168,16 @@ void Data::removeCategory(const QString &appName, const QString &categoryName)
     }
 }
 
+void Data::clearCategory(const QString& appName, const QString& categoryName)
+{
+    auto app = _applicationlist.find(appName);
+    if (app == _applicationlist.end()) return;
+    auto category = app->second->findCategory(categoryName);
+    if (!category) return;
+
+    category->clearLog();
+}
+
 void Data::insertFilter()
 {
     QString filterName = QString("FILTER%1").arg(++_filtercount);
@@ -314,6 +324,12 @@ bool Data_Category::addLog(std::shared_ptr<LogModelItem> item)
         return true;
     }
     return false;
+}
+
+void Data_Category::clearLog()
+{
+    _model.clearLogs();
+    emit logAmount(_name, _model.rowCount());
 }
 
 int Data_Category::addToModel()

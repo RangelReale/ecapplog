@@ -77,9 +77,12 @@ public Q_SLOTS:
 	void menuEditClear();
 	void menuEditPause();
 	void menuViewGroupCategories();
+	void menuViewNewWindow();
 	void menuFilterNew();
 	void menuFilterClear();
 	void menuFilterGroupBy();
+
+	void refreshWindowTitle();
 
 	void applicationTabClose(int index);
 	void applicationTabBarContextMenu(const QPoint &point);

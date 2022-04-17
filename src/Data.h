@@ -32,6 +32,7 @@ public:
     LogModel *model();
 
     bool addLog(std::shared_ptr<LogModelItem> item);
+    void clearLog();
     int checkLogExpiration();
 signals:
     void logAmount(const QString& categoryName, int amount);
@@ -132,6 +133,7 @@ public:
     void clearFilter(const QString &filterName);
     void removeApplication(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
+    void clearCategory(const QString& appName, const QString& categoryName);
 
     void toggleFilter(const QString &filterName, const QString &appName, const QString &categoryName);
     void setFilterGroupBy(const QString &filterName, Data_Filter_GroupBy groupby);

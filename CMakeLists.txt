@@ -24,6 +24,7 @@ include(InstallRequiredSystemLibraries)
 # Options
 #
 option(ECAPPLOG_BUILD_INSTALLER "Build installer" OFF)
+option(ECAPPLOG_BUILD_CONSOLE_EXE "Build console exe debug version" OFF)
 
 #
 # Project information

@@ -69,6 +69,7 @@ public:
     	const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory);
 	void removeLog(int amount);
 	void addLogs(const std::deque<std::shared_ptr<LogModelItem>> &item_list);
+	void clearLogs();
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 

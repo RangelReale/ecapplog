@@ -58,6 +58,13 @@ void LogModel::addLog(std::shared_ptr<LogModelItem> item)
     endInsertRows();
 }
 
+void LogModel::clearLogs()
+{
+    beginResetModel();
+    lst.clear();
+    endResetModel();
+}
+
 void LogModel::addLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
 {

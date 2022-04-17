@@ -45,19 +45,21 @@ add_library(ecapploglib STATIC ${SRCS})
 target_link_libraries(ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
 target_compile_features(ecapploglib PRIVATE cxx_std_17)
 
-# Executable: console
-add_executable(ecapplog_console
-	main.cpp
-	${EXE_SRCS}
-)
-target_compile_features(ecapplog_console PRIVATE cxx_std_17)
-set_target_properties(ecapplog_console PROPERTIES
-    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
-    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
-	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
-	LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
-)
-target_link_libraries(ecapplog_console ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
+if (ECAPPLOG_BUILD_CONSOLE_EXE)
+	# Executable: console
+	add_executable(ecapplog_console
+		main.cpp
+		${EXE_SRCS}
+	)
+	target_compile_features(ecapplog_console PRIVATE cxx_std_17)
+	set_target_properties(ecapplog_console PROPERTIES
+		XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+		RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
+		LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
+	)
+	target_link_libraries(ecapplog_console ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
+endif()
 
 # Executable: main
 add_executable(ecapplog WIN32 MACOSX_BUNDLE

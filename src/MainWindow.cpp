@@ -28,14 +28,15 @@
 MainWindow *MainWindow::self;
 
 MainWindow::MainWindow(QWidget *parent) :
-	QMainWindow(parent), _applicationlist(), _dockCount(0), _rootWindow(nullptr)
+	QMainWindow(parent), _applicationlist(), _dockCount(0), _rootWindow(nullptr),
+	_data(), _server()
 {
 	MainWindow::self = this;
 	QSettings settings;
 
     setGeometry(0, style()->pixelMetric(QStyle::PM_TitleBarHeight), 400, 400);
 
-	setWindowTitle("ECAppLog");
+	refreshWindowTitle();
 	setWindowIcon(QIcon(":/ecapplog"));
 
 	// settings
@@ -89,6 +90,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	viewGroupCategories->setChecked(_data.getGroupCategories());
 	connect(viewGroupCategories, SIGNAL(triggered()), this, SLOT(menuViewGroupCategories()));
 	_viewMenu->addAction(viewGroupCategories);
+	_viewMenu->addSeparator();
+	QAction* viewNewWindow = new QAction("&New window", this);
+	connect(viewNewWindow, &QAction::triggered, this, &MainWindow::menuViewNewWindow);
+	_viewMenu->addAction(viewNewWindow);
 	_viewMenu->addSeparator();
 
 	menuBar()->addMenu(_viewMenu);
@@ -158,6 +163,7 @@ void MainWindow::menuEditPause()
 {
 	_data.setPaused(!_data.getPaused());
 	qobject_cast<QAction*>(sender())->setChecked(_data.getPaused());
+	refreshWindowTitle();
 }
 
 void MainWindow::menuViewGroupCategories()
@@ -168,6 +174,11 @@ void MainWindow::menuViewGroupCategories()
 	settings.setValue("group_categories", _data.getGroupCategories());
 
 	qobject_cast<QAction*>(sender())->setChecked(_data.getGroupCategories());
+}
+
+void MainWindow::menuViewNewWindow()
+{
+	createWindow();
 }
 
 void MainWindow::menuFilterNew()
@@ -192,6 +203,13 @@ void MainWindow::menuFilterGroupBy()
 	QVariant groupBy = action->property(FILTERMENU_GROUPBY);
 	if (!filterName.isValid()) return;
 	_data.setFilterGroupBy(filterName.toString(), static_cast<Data_Filter_GroupBy>(groupBy.toInt()));
+}
+
+void MainWindow::refreshWindowTitle()
+{
+	QString title("ECAppLog");
+	if (_data.getPaused()) title.append(" [paused]");
+	setWindowTitle(title);
 }
 
 void MainWindow::applicationTabClose(int index)
@@ -296,21 +314,50 @@ void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 	QMenu menu(this);
 
 	QString appName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_APPNAME).toString());
-	if (appName.startsWith("FILTER")) return;
+	QString categoryName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_CATEGORYNAME).toString());
+
+	QAction* moveToFront = menu.addAction("Move category to &front");
+	QAction* moveToBack = menu.addAction("Move category to &back");
+	menu.addSeparator();
+	QAction* clearCategory = menu.addAction("&Clear");
 
 	QMenu filterMenu(tr("Toggle category on filter"), this);
-	for (auto filter : _data.filterNames())
+	if (!appName.startsWith("FILTER"))
 	{
-		filterMenu.addAction(filter);
+		menu.addSeparator();
+		
+		for (auto filter : _data.filterNames())
+		{
+			QAction* filterItem = filterMenu.addAction(filter);
+			filterItem->setProperty("ECL_FILTER", true);
+		}
+		menu.addMenu(&filterMenu);
 	}
-	menu.addMenu(&filterMenu);
 
 	QAction *selectedItem = menu.exec(tabBar->mapToGlobal(point));
 	if (selectedItem)
 	{
-		QString filterName = selectedItem->text();
-		QString categoryName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_CATEGORYNAME).toString());
-		_data.toggleFilter(filterName, appName, categoryName);
+		if (selectedItem == moveToFront)
+		{
+			bool isCurrent = sourceTabWidget->currentIndex() == tabIndex;
+			sourceTabWidget->insertTab(0, sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
+			if (isCurrent) sourceTabWidget->setCurrentIndex(0);
+		}
+		else if (selectedItem == moveToBack)
+		{
+			bool isCurrent = sourceTabWidget->currentIndex() == tabIndex;
+			sourceTabWidget->addTab(sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
+			if (isCurrent) sourceTabWidget->setCurrentIndex(sourceTabWidget->count() - 1);
+		}
+		else if (selectedItem == clearCategory)
+		{
+			_data.clearCategory(appName, categoryName);
+		}
+		else if (selectedItem->property("ECL_FILTER").isValid())
+		{
+			QString filterName = selectedItem->text();
+			_data.toggleFilter(filterName, appName, categoryName);
+		}
 	}
 }
 
