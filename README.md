@@ -45,7 +45,7 @@ This must be the first command sent after the connection is established. It sets
 **CMD_LOG (0)**
 
 ```
-<0><payload size><{"time":"2022-04-17T11:32:13.123","priority":"INFORMATION","category":"server","message": "Server started"}>
+<0><payload size><{"time":"2022-04-17T11:32:13.123","priority":"INFORMATION","category":"server","message":"Server started"}>
 ```
 
  * Time must ALWAYS be UTC with milliseconds, using this format: `yyyy-MM-ddThh:mm:ss.zzz`
