@@ -43,7 +43,12 @@ set(IDENTIFIER ${PROJECT_NAME})
 #
 # Find Packages
 #
-find_package(Qt6 COMPONENTS Widgets Network REQUIRED)
+set(QT6_COMPONENTS Widgets Network)
+if (APPLE)
+    # Hack for QtDebus dependency not being added in installer
+    LIST(APPEND QT6_COMPONENTS DBus)
+endif()
+find_package(Qt6 COMPONENTS ${QT6_COMPONENTS} REQUIRED)
 
 #
 # External Dependencies

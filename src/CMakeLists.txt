@@ -74,6 +74,10 @@ set_target_properties(ecapplog PROPERTIES
 	MACOSX_RPATH ON
 )
 target_link_libraries(ecapplog ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
+if (APPLE)
+	# Hack for QtDebus dependency not being added in installer
+	target_link_libraries(ecapplog ecapploglib Qt6::DBus)
+endif()
 
 # Install
 if(UNIX AND NOT APPLE)
