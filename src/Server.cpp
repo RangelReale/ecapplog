@@ -50,6 +50,18 @@ void ApplicationInfo::setName(const QString& name)
 Server::Server(QObject *parent)
 	: QTcpServer(parent), _clientlist(), _seq()
 {
+	_worker = new ServerWorker;
+	connect(_worker, &ServerWorker::onJsonReceived, this, &Server::onJsonReceived);
+	connect(_worker, &ServerWorker::onJsonError, this, &Server::onJsonError);
+	_worker->moveToThread(&_workerthread);
+	_workerthread.start();
+}
+
+Server::~Server()
+{
+	_workerthread.quit();
+	_workerthread.wait();
+	delete _worker;
 }
 
 bool Server::startServer()
@@ -71,12 +83,13 @@ void Server::incomingConnection(qintptr socketDescriptor)
 {
 	ApplicationInfo *ci = new ApplicationInfo(new QTcpSocket);
 
-	connect(ci->socket(), SIGNAL(readyRead()), this, SLOT(onReadyRead()));
-	connect(ci->socket(), SIGNAL(disconnected()), this, SLOT(onDisconnected()));
+	connect(ci->socket(), &QTcpSocket::readyRead, this, &Server::onReadyRead);
+	connect(ci->socket(), &QTcpSocket::disconnected, this, &Server::onDisconnected);
 	_clientlist.append(ci);
 
 	if (!ci->socket()->setSocketDescriptor(socketDescriptor)) {
-		emit onError(*ci->socket(), ci->socket()->errorString());
+		QString appName(applicationName(*ci->socket(), ""));
+		emit onError(appName, ci->socket()->errorString());
 		return;
 	}
 }
@@ -87,7 +100,8 @@ void Server::onReadyRead()
 
 	int idx = indexOf(clientSocket);
 	if (idx == -1) {
-		emit onError(*clientSocket, "Could not find client connection in internal list, disconnecting");
+		QString appName(applicationName(*clientSocket, ""));
+		emit onError(appName, "Could not find client connection in internal list, disconnecting");
 		clientSocket->close();
 		return;
 	}
@@ -113,11 +127,13 @@ void Server::onReadyRead()
 			return;     // wait for more data
 		}
 
+		QString appName(applicationName(*appInfo));
+
 		if (cmd == CMD_BANNER)
 		{
 			if (appInfo->hasBanner() || !data.startsWith("ECAPPLOG "))
 			{
-				emit onError(*clientSocket, "Invalid banner received, disconnecting");
+				emit onError(appName, "Invalid banner received, disconnecting");
 				clientSocket->close();
 				return;
 			}
@@ -129,17 +145,10 @@ void Server::onReadyRead()
 			}
 			appInfo->setHasBanner();
 		} else {
-			QJsonParseError parseError;
-			const QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
-			if (parseError.error == QJsonParseError::NoError) {
-				if (jsonDoc.isObject()) {
-					emit onJsonReceived(*appInfo, cmd, jsonDoc.object());
-				}
-			}
-			else
-			{
-				emit onJsonError(*appInfo, parseError);
-			}
+			// parse json in worker thread
+			QMetaObject::invokeMethod(_worker, "parseJson", Qt::QueuedConnection,
+				Q_ARG(QString, appName), Q_ARG(quint8, cmd),
+				Q_ARG(QByteArray, data));
 		}
 	}
 }
@@ -163,4 +172,35 @@ int Server::indexOf(QTcpSocket *clientSocket)
 		if (_clientlist.at(i)->socket() == clientSocket) return i;
 	}
 	return -1;
+}
+
+QString Server::applicationName(const ApplicationInfo& appInfo)
+{
+	return applicationName(*appInfo.socket(), appInfo.getName());
+}
+
+QString Server::applicationName(const QTcpSocket& clientSocket, const QString& connname)
+{
+	if (connname.isEmpty())
+		return QString("%1:%2").arg(clientSocket.peerAddress().toString()).arg(clientSocket.peerPort());
+	return connname;
+}
+
+//
+// ServerWorker
+//
+
+void ServerWorker::parseJson(const QString& appName, quint8 cmd, const QByteArray& data)
+{
+	QJsonParseError parseError;
+	const QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
+	if (parseError.error == QJsonParseError::NoError) {
+		if (jsonDoc.isObject()) {
+			emit onJsonReceived(appName, cmd, jsonDoc.object());
+		}
+	}
+	else
+	{
+		emit onJsonError(appName, parseError);
+	}
 }

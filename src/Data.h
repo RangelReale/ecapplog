@@ -8,15 +8,19 @@
 
 #include "Config.h"
 #include "LogModel.h"
+#include "Util.h"
 
 #include <QString>
 #include <QJsonObject>
 #include <QDateTime>
 #include <QAbstractListModel>
 #include <QStringList>
+#include <QTimer>
+#include <QElapsedTimer>
 
 #include <memory>
 #include <set>
+#include <deque>
 
 class Data_Category : public QObject
 {
@@ -26,9 +30,22 @@ public:
 
     const QString &name() { return _name; }
     LogModel *model();
+
+    bool addLog(std::shared_ptr<LogModelItem> item);
+    void clearLog();
+    int checkLogExpiration();
+signals:
+    void logAmount(const QString& categoryName, int amount);
+    void logItemsPerSecond(const QString& categoryName, double itemsPerSecond);
+protected:
+    int addToModel();
 private:
     QString _name;
     LogModel _model;
+    QElapsedTimer _elapsed;
+    typedef std::deque<std::shared_ptr<LogModelItem> > logs_t;
+    logs_t _logs;
+    Util::ItemPerSecondChrono<10> _ips;
 };
 
 class Data_Application : public QObject
@@ -44,6 +61,14 @@ public:
     void addCategory(std::shared_ptr<Data_Category> category);
     std::shared_ptr<Data_Category> findCategory(const QString &categoryName);
     bool removeCategory(const QString &categoryName);
+
+    void checkLogExpiration();
+signals:
+    void logAmount(const QString& appName, const QString& categoryName, int amount);
+    void logItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
+private slots:
+    void categoryLogAmount(const QString& categoryName, int amount);
+    void categoryLogItemsPerSecond(const QString& categoryName, double itemsPerSecond);
 private:
     QString _name;
     bool _groupCategories;
@@ -97,6 +122,7 @@ class Data : public QObject
     Q_OBJECT
 public:
     Data();
+    ~Data();
 
     void log(const QString &appName, const QJsonObject &jsonData);
     void log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
@@ -107,6 +133,7 @@ public:
     void clearFilter(const QString &filterName);
     void removeApplication(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
+    void clearCategory(const QString& appName, const QString& categoryName);
 
     void toggleFilter(const QString &filterName, const QString &appName, const QString &categoryName);
     void setFilterGroupBy(const QString &filterName, Data_Filter_GroupBy groupby);
@@ -128,21 +155,26 @@ signals:
     void newCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
     void delCategory(const QString &appName, const QString &categoryName);
     void logAmount(const QString &appName, const QString &categoryName, int amount);
+    void logItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
     void newFilter(const QString &filterName);
     void filterChanged(const QString &filterName);
+private slots:
+    void checkExpiredLog();
 private:
     void logFilter(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
         const QString &message, const QString &source = QString());
     void internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
         const QString &message, const QString &source = QString(), const QString &altApp = QString(), 
         const QString &altCategory = QString(), bool isExtraCategory = false);
-    void addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-        const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory);
+    void addToModel(std::shared_ptr<Data_Application> application, std::shared_ptr<Data_Category>, 
+        const QString& appName, const QDateTime& time, const QString& categoryName, const QString& priority,
+        const QString& message, const QString& source, const QString& altApp, const QString& altCategory, bool isExtraCategory);
 
     std::shared_ptr<Data_Application> createApplication(const QString &appName);
     std::shared_ptr<Data_Category> createCategory(std::shared_ptr<Data_Application>, const QString &categoryName);
     std::shared_ptr<Data_Filter> createFilter(const QString &filterName);
 
+    QTimer* _logtimer;
     typedef std::map<QString, std::shared_ptr<Data_Application> > applicationlist_t;    
     typedef std::map<QString, std::shared_ptr<Data_Filter> > filterlist_t;    
     applicationlist_t _applicationlist;

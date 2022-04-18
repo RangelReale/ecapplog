@@ -98,7 +98,8 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
 
 QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    QSize size = QItemDelegate::sizeHint(option, index);
+    //QSize size = QItemDelegate::sizeHint(option, index);
+    QSize size(0, option.fontMetrics.height());
 
     QString altApp = index.data(MODELROLE_ALTAPP).toString();
     QString altCategory = index.data(MODELROLE_ALTCATEGORY).toString();

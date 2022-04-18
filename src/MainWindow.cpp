@@ -28,14 +28,15 @@
 MainWindow *MainWindow::self;
 
 MainWindow::MainWindow(QWidget *parent) :
-	QMainWindow(parent), _applicationlist(), _dockCount(0), _rootWindow(nullptr)
+	QMainWindow(parent), _applicationlist(), _dockCount(0), _rootWindow(nullptr),
+	_data(), _server()
 {
 	MainWindow::self = this;
 	QSettings settings;
 
     setGeometry(0, style()->pixelMetric(QStyle::PM_TitleBarHeight), 400, 400);
 
-	setWindowTitle("ECAppLog");
+	refreshWindowTitle();
 	setWindowIcon(QIcon(":/ecapplog"));
 
 	// settings
@@ -44,9 +45,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	_dockManager = new ads::CDockManager(this);
 
 	// server
-	connect(&_server, SIGNAL(onJsonReceived(const ApplicationInfo&, quint8, const QJsonObject&)), this, SLOT(onJsonReceived(const ApplicationInfo&, quint8, const QJsonObject&)));
-	connect(&_server, SIGNAL(onJsonError(const ApplicationInfo&, const QJsonParseError&)), this, SLOT(onJsonError(const ApplicationInfo&, const QJsonParseError&)));
-	connect(&_server, SIGNAL(onError(const QTcpSocket&, const QString&)), this, SLOT(onError(const QTcpSocket&, const QString&)));
+	connect(&_server, &Server::onJsonReceived, this, &MainWindow::onJsonReceived);
+	connect(&_server, &Server::onJsonError, this, &MainWindow::onJsonError);
+	connect(&_server, &Server::onError, this, &MainWindow::onError);
 
 	if (!_server.startServer()) {
 		QMessageBox::critical(this, tr("Server"),
@@ -57,13 +58,14 @@ MainWindow::MainWindow(QWidget *parent) :
 	}
 
 	// data
-	connect(&_data, SIGNAL(newApplication(const QString&)), this, SLOT(onNewApplication(const QString&)));
-	connect(&_data, SIGNAL(delApplication(const QString&)), this, SLOT(onDelApplication(const QString&)));
-	connect(&_data, SIGNAL(newCategory(const QString&, const QString &, QAbstractListModel *)), this, SLOT(onNewCategory(const QString&, const QString &, QAbstractListModel *)));
-	connect(&_data, SIGNAL(delCategory(const QString&, const QString &)), this, SLOT(onDelCategory(const QString&, const QString &)));
-	connect(&_data, SIGNAL(logAmount(const QString&, const QString &, int)), this, SLOT(onLogAmount(const QString&, const QString &, int)));
-	connect(&_data, SIGNAL(newFilter(const QString&)), this, SLOT(onNewFilter(const QString&)));
-	connect(&_data, SIGNAL(filterChanged(const QString&)), this, SLOT(onFilterChanged(const QString&)));
+	connect(&_data, &Data::newApplication, this, &MainWindow::onNewApplication);
+	connect(&_data, &Data::delApplication, this, &MainWindow::onDelApplication);
+	connect(&_data, &Data::newCategory, this, &MainWindow::onNewCategory);
+	connect(&_data, &Data::delCategory, this, &MainWindow::onDelCategory);
+	connect(&_data, &Data::logAmount, this, &MainWindow::onLogAmount);
+	connect(&_data, &Data::logItemsPerSecond, this, &MainWindow::onLogItemsPerSecond);
+	connect(&_data, &Data::newFilter, this, &MainWindow::onNewFilter);
+	connect(&_data, &Data::filterChanged, this, &MainWindow::onFilterChanged);
 
 	// menu: EDIT
 	QMenu *editMenu = new QMenu("&Edit", this);
@@ -89,6 +91,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(viewGroupCategories, SIGNAL(triggered()), this, SLOT(menuViewGroupCategories()));
 	_viewMenu->addAction(viewGroupCategories);
 	_viewMenu->addSeparator();
+	QAction* viewNewWindow = new QAction("&New window", this);
+	connect(viewNewWindow, &QAction::triggered, this, &MainWindow::menuViewNewWindow);
+	_viewMenu->addAction(viewNewWindow);
+	_viewMenu->addSeparator();
 
 	menuBar()->addMenu(_viewMenu);
 
@@ -106,18 +112,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	// initialization
 	createWindow();
 	menuFilterNew();
-}
-
-QString MainWindow::applicationName(const ApplicationInfo& appInfo)
-{
-	return applicationName(*appInfo.socket(), appInfo.getName());
-}
-
-QString MainWindow::applicationName(const QTcpSocket &clientSocket, const QString& connname)
-{
-	if (connname.isEmpty())
-		return QString("%1:%2").arg(clientSocket.peerAddress().toString()).arg(clientSocket.peerPort());
-	return connname;
 }
 
 QTabWidget *MainWindow::createWindow()
@@ -169,6 +163,7 @@ void MainWindow::menuEditPause()
 {
 	_data.setPaused(!_data.getPaused());
 	qobject_cast<QAction*>(sender())->setChecked(_data.getPaused());
+	refreshWindowTitle();
 }
 
 void MainWindow::menuViewGroupCategories()
@@ -179,6 +174,11 @@ void MainWindow::menuViewGroupCategories()
 	settings.setValue("group_categories", _data.getGroupCategories());
 
 	qobject_cast<QAction*>(sender())->setChecked(_data.getGroupCategories());
+}
+
+void MainWindow::menuViewNewWindow()
+{
+	createWindow();
 }
 
 void MainWindow::menuFilterNew()
@@ -203,6 +203,13 @@ void MainWindow::menuFilterGroupBy()
 	QVariant groupBy = action->property(FILTERMENU_GROUPBY);
 	if (!filterName.isValid()) return;
 	_data.setFilterGroupBy(filterName.toString(), static_cast<Data_Filter_GroupBy>(groupBy.toInt()));
+}
+
+void MainWindow::refreshWindowTitle()
+{
+	QString title("ECAppLog");
+	if (_data.getPaused()) title.append(" [paused]");
+	setWindowTitle(title);
 }
 
 void MainWindow::applicationTabClose(int index)
@@ -307,21 +314,50 @@ void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 	QMenu menu(this);
 
 	QString appName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_APPNAME).toString());
-	if (appName.startsWith("FILTER")) return;
+	QString categoryName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_CATEGORYNAME).toString());
+
+	QAction* moveToFront = menu.addAction("Move category to &front");
+	QAction* moveToBack = menu.addAction("Move category to &back");
+	menu.addSeparator();
+	QAction* clearCategory = menu.addAction("&Clear");
 
 	QMenu filterMenu(tr("Toggle category on filter"), this);
-	for (auto filter : _data.filterNames())
+	if (!appName.startsWith("FILTER"))
 	{
-		filterMenu.addAction(filter);
+		menu.addSeparator();
+		
+		for (auto filter : _data.filterNames())
+		{
+			QAction* filterItem = filterMenu.addAction(filter);
+			filterItem->setProperty("ECL_FILTER", true);
+		}
+		menu.addMenu(&filterMenu);
 	}
-	menu.addMenu(&filterMenu);
 
 	QAction *selectedItem = menu.exec(tabBar->mapToGlobal(point));
 	if (selectedItem)
 	{
-		QString filterName = selectedItem->text();
-		QString categoryName(sourceTabWidget->widget(tabIndex)->property(PROPERTY_CATEGORYNAME).toString());
-		_data.toggleFilter(filterName, appName, categoryName);
+		if (selectedItem == moveToFront)
+		{
+			bool isCurrent = sourceTabWidget->currentIndex() == tabIndex;
+			sourceTabWidget->insertTab(0, sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
+			if (isCurrent) sourceTabWidget->setCurrentIndex(0);
+		}
+		else if (selectedItem == moveToBack)
+		{
+			bool isCurrent = sourceTabWidget->currentIndex() == tabIndex;
+			sourceTabWidget->addTab(sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
+			if (isCurrent) sourceTabWidget->setCurrentIndex(sourceTabWidget->count() - 1);
+		}
+		else if (selectedItem == clearCategory)
+		{
+			_data.clearCategory(appName, categoryName);
+		}
+		else if (selectedItem->property("ECL_FILTER").isValid())
+		{
+			QString filterName = selectedItem->text();
+			_data.toggleFilter(filterName, appName, categoryName);
+		}
 	}
 }
 
@@ -372,34 +408,34 @@ void MainWindow::logListDoubleClicked(const QModelIndex &)
 	logListDetail(list);
 }
 
-void MainWindow::onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject &jsonData)
+void MainWindow::onJsonReceived(const QString& appName, quint8 cmd, const QJsonObject &jsonData)
 {
 	switch (cmd)
 	{
 	case CMD_LOG:
-		_data.log(applicationName(appInfo), jsonData);
+		_data.log(appName, jsonData);
 		break;
 	default:
-		_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+		_data.log(appName, QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
 			QString("Unknown command: %1").arg(cmd));
 	}
 }
 
-void MainWindow::onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error)
+void MainWindow::onJsonError(const QString& appName, const QJsonParseError &error)
 {
-	_data.log(applicationName(appInfo), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+	_data.log(appName, QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
 		QString("JSON parse error: %1").arg(error.errorString()));
 }
 
-void MainWindow::onError(const QTcpSocket &clientSocket, const QString &error)
+void MainWindow::onError(const QString& appName, const QString &error)
 {
-	_data.log(applicationName(clientSocket, ""), QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
+	_data.log(appName, QDateTime(), "ECAPPLOG", Priority::PRIO_ERROR, 
 		QString("Error: %1").arg(error));
 }
 
-void MainWindow::onCmdLog(const ApplicationInfo& appInfo, const QJsonObject &jsonData)
+void MainWindow::onCmdLog(const QString& appName, const QJsonObject &jsonData)
 {
-	_data.log(applicationName(appInfo), jsonData);
+	_data.log(appName, jsonData);
 }
 
 void MainWindow::onNewApplication(const QString &appName)
@@ -503,6 +539,19 @@ void MainWindow::onLogAmount(const QString &appName, const QString &categoryName
 	if (!category) return;
 
 	category->logsamount->setText(QString("%1").arg(amount));
+}
+
+void MainWindow::onLogItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond)
+{
+	/*
+	auto app = _applicationlist.find(appName);
+	if (app == _applicationlist.end()) return;
+
+	auto category = app->second->findCategory(categoryName);
+	if (!category) return;
+
+	category->logsamount->setText(QString("%1").arg(itemsPerSecond, 0, 'f', 1));
+	*/
 }
 
 void MainWindow::onNewFilter(const QString &filterName)

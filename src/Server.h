@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QAtomicInteger>
+#include <QThread>
 
 
 //
@@ -36,6 +37,19 @@ private:
 };
 
 //
+// ServerWorker
+//
+class ServerWorker : public QObject
+{
+	Q_OBJECT
+public slots:
+	void parseJson(const QString& appName, quint8 cmd, const QByteArray& data);
+signals:
+	void onJsonReceived(const QString& appName, quint8 cmd, const QJsonObject& jsonData);
+	void onJsonError(const QString& appName, const QJsonParseError& error);
+};
+
+//
 // Server
 //
 class Server : public QTcpServer
@@ -43,20 +57,25 @@ class Server : public QTcpServer
 	Q_OBJECT
 public:
 	Server(QObject *parent = nullptr);
+	~Server();
 
 	bool startServer();
 private slots:
 	void onReadyRead();
 	void onDisconnected();
 signals:
-	void onJsonReceived(const ApplicationInfo& appInfo, quint8 cmd, const QJsonObject& jsonData);
-	void onJsonError(const ApplicationInfo& appInfo, const QJsonParseError &error);
-	void onError(const QTcpSocket &clientSocket, const QString &error);
+	void onJsonReceived(const QString& appName, quint8 cmd, const QJsonObject& jsonData);
+	void onJsonError(const QString& appName, const QJsonParseError &error);
+	void onError(const QString& appName, const QString &error);
 protected:
 	void incomingConnection(qintptr socketDescriptor) override;
+	QString applicationName(const ApplicationInfo& appInfo);
+	QString applicationName(const QTcpSocket& clientSocket, const QString& connname);
 private:
 	int indexOf(QTcpSocket *clientSocket);
 
 	QList<ApplicationInfo*> _clientlist;
 	QAtomicInteger<quint32> _seq;
+	QThread _workerthread;
+	ServerWorker* _worker;
 };

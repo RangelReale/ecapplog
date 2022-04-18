@@ -4,7 +4,14 @@
 
 Data::Data() : _applicationlist(), _filterlist(), _filtercount(0), _groupCategories(false), _paused(false)
 {
+    _logtimer = new QTimer(this);
+    connect(_logtimer, &QTimer::timeout, this, &Data::checkExpiredLog);
+    _logtimer->start(1000);
+}
 
+Data::~Data()
+{
+    _logtimer->stop();
 }
 
 void Data::log(const QString &appName, const QJsonObject &jsonData)
@@ -123,15 +130,16 @@ void Data::internalLog(const QString &appName, const QDateTime &time, const QStr
         category = createCategory(app, appCategory);
     }
 
-    addToModel(category->model(), appName, time, appCategory, priority, message, source, altApp, altCategory, isExtraCategory);
+    addToModel(app, category, appName, time, appCategory, priority, message, source, altApp, altCategory, isExtraCategory);
 }
 
-
-void Data::addToModel(LogModel *model, const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
+void Data::addToModel(std::shared_ptr<Data_Application> application, std::shared_ptr<Data_Category> category,
+    const QString& appName, const QDateTime& time,
+    const QString& categoryName, const QString& priority, const QString& message, const QString& source, 
+    const QString& altApp, const QString& altCategory, bool isExtraCategory)
 {
-    model->addLog(appName, time, categoryName, priority, message, source, altApp, altCategory, isExtraCategory);
-    emit logAmount(appName, categoryName, model->rowCount(QModelIndex()));
+    category->addLog(std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source,
+        altApp, altCategory, isExtraCategory));
 }
 
 void Data::removeApplication(const QString &appName)
@@ -160,6 +168,16 @@ void Data::removeCategory(const QString &appName, const QString &categoryName)
     }
 }
 
+void Data::clearCategory(const QString& appName, const QString& categoryName)
+{
+    auto app = _applicationlist.find(appName);
+    if (app == _applicationlist.end()) return;
+    auto category = app->second->findCategory(categoryName);
+    if (!category) return;
+
+    category->clearLog();
+}
+
 void Data::insertFilter()
 {
     QString filterName = QString("FILTER%1").arg(++_filtercount);
@@ -177,6 +195,8 @@ void Data::clearFilter(const QString &filterName)
 std::shared_ptr<Data_Application> Data::createApplication(const QString &appName)
 {
     auto app = std::make_shared<Data_Application>(appName);
+    connect(app.get(), &Data_Application::logAmount, this, &Data::logAmount);
+    connect(app.get(), &Data_Application::logItemsPerSecond, this, &Data::logItemsPerSecond);
     _applicationlist[appName] = app;
     emit newApplication(appName);
     return app;
@@ -271,15 +291,63 @@ QStringList Data::filterNames() const
     return ret;
 }
 
+void Data::checkExpiredLog()
+{
+    for (auto app : _applicationlist)
+    {
+        app.second->checkLogExpiration();
+    }
+}
+
 //
 // Data_Category
 //
 
-Data_Category::Data_Category(const QString &name) : _name(name), _model() {}
+Data_Category::Data_Category(const QString &name) : _name(name), _model(), _logs(), _elapsed(), _ips() {}
 
 LogModel *Data_Category::model()
 {
     return &_model;
+}
+
+bool Data_Category::addLog(std::shared_ptr<LogModelItem> item)
+{
+    _logs.push_back(item);
+    if (_ips.sample(1))
+    {
+        emit logItemsPerSecond(_name, _ips.avg());
+    }
+    // wait 10 items if more than 15 items/second, only show when accumulating 10 items
+    if (_logs.size() > 10 || _ips.avg() < 15)
+    {
+        addToModel();
+        return true;
+    }
+    return false;
+}
+
+void Data_Category::clearLog()
+{
+    _model.clearLogs();
+    emit logAmount(_name, _model.rowCount());
+}
+
+int Data_Category::addToModel()
+{
+    int ret = static_cast<int>(_logs.size());
+    _model.addLogs(_logs);
+    _logs.clear();
+    _elapsed.restart();
+    emit logAmount(_name, _model.rowCount());
+    return ret;
+}
+
+int Data_Category::checkLogExpiration()
+{
+    if (_logs.empty() || !_elapsed.hasExpired(1000)) return 0;
+    int ret = addToModel();
+    qDebug() << "Data_Category::checkLogExpiration" << ret;
+    return ret;
 }
 
 //
@@ -298,12 +366,32 @@ std::shared_ptr<Data_Category> Data_Application::findCategory(const QString &cat
 
 void Data_Application::addCategory(std::shared_ptr<Data_Category> category)
 {
+    connect(category.get(), &Data_Category::logAmount, this, &Data_Application::categoryLogAmount);
+    connect(category.get(), &Data_Category::logItemsPerSecond, this, &Data_Application::categoryLogItemsPerSecond);
     _categorylist[category->name()] = category;
 }
 
 bool Data_Application::removeCategory(const QString &categoryName)
 {
     return _categorylist.erase(categoryName) > 0;
+}
+
+void Data_Application::checkLogExpiration()
+{
+    for (auto cat : _categorylist)
+    {
+        cat.second->checkLogExpiration();
+    }
+}
+
+void Data_Application::categoryLogAmount(const QString& categoryName, int amount)
+{
+    emit logAmount(_name, categoryName, amount);
+}
+
+void Data_Application::categoryLogItemsPerSecond(const QString& categoryName, double itemsPerSecond)
+{
+    emit logItemsPerSecond(_name, categoryName, itemsPerSecond);
 }
 
 //
