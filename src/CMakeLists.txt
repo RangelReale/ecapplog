@@ -42,7 +42,7 @@ if (APPLE)
 endif()
 
 add_library(ecapploglib STATIC ${SRCS})
-target_link_libraries(ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
+target_link_libraries(ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
 target_compile_features(ecapploglib PRIVATE cxx_std_17)
 
 if (ECAPPLOG_BUILD_CONSOLE_EXE)
@@ -58,7 +58,7 @@ if (ECAPPLOG_BUILD_CONSOLE_EXE)
 		RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 		LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 	)
-	target_link_libraries(ecapplog_console ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
+	target_link_libraries(ecapplog_console ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
 endif()
 
 # Executable: main
@@ -73,10 +73,10 @@ set_target_properties(ecapplog PROPERTIES
 	MACOSX_BUNDLE ON
 	MACOSX_RPATH ON
 )
-target_link_libraries(ecapplog ecapploglib Qt6::Widgets Qt6::Network qtadvanceddocking)
+target_link_libraries(ecapplog ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
 if (APPLE)
 	# Hack for QtDebus dependency not being added in installer
-	target_link_libraries(ecapplog ecapploglib Qt6::DBus)
+	target_link_libraries(ecapplog ecapploglib Qt5::DBus)
 endif()
 
 # Install
