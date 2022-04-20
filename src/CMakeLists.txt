@@ -86,6 +86,8 @@ endif()
 # Install
 if(UNIX AND NOT APPLE)
     install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release)
+	INSTALL(FILES resources/ecapplog.desktop DESTINATION share/applications CONFIGURATIONS Release)
+	INSTALL(FILES resources/ecapplog.png DESTINATION share/icons CONFIGURATIONS Release)
 elseif(WIN32)
     install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release)
 elseif(APPLE)
