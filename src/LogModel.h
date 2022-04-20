@@ -9,6 +9,7 @@
 #include <QAbstractListModel>
 #include <QDateTime>
 
+#include <memory>
 #include <deque>
 
 #define MODELROLE_APP           	Qt::UserRole + 0

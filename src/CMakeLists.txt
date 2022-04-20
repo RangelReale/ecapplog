@@ -19,6 +19,10 @@ set(SRCS
 )
 
 set(EXE_SRCS resources/ecapplog.qrc)
+set(LIB_LINK qtadvanceddocking)
+if (UNIX AND NOT APPLE)
+  LIST(APPEND LIB_LINK xcb)
+endif()
 
 if (WIN32)
 	set(ICON_FILE resources/ecapplog.ico)
@@ -58,7 +62,7 @@ if (ECAPPLOG_BUILD_CONSOLE_EXE)
 		RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 		LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 	)
-	target_link_libraries(ecapplog_console ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
+	target_link_libraries(ecapplog_console ecapploglib Qt5::Widgets Qt5::Network ${LIB_LINK})
 endif()
 
 # Executable: main
@@ -73,7 +77,7 @@ set_target_properties(ecapplog PROPERTIES
 	MACOSX_BUNDLE ON
 	MACOSX_RPATH ON
 )
-target_link_libraries(ecapplog ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
+target_link_libraries(ecapplog ecapploglib Qt5::Widgets Qt5::Network ${LIB_LINK})
 if (APPLE)
 	# Hack for QtDebus dependency not being added in installer
 	target_link_libraries(ecapplog ecapploglib Qt5::DBus)

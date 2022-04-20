@@ -346,7 +346,6 @@ int Data_Category::checkLogExpiration()
 {
     if (_logs.empty() || !_elapsed.hasExpired(1000)) return 0;
     int ret = addToModel();
-    qDebug() << "Data_Category::checkLogExpiration" << ret;
     return ret;
 }
 

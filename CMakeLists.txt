@@ -44,6 +44,9 @@ set(IDENTIFIER ${PROJECT_NAME})
 # Find Packages
 #
 set(QT5_COMPONENTS Widgets Network)
+if (UNIX AND NOT APPLE)
+    include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+endif()
 if (APPLE)
     # Hack for QtDebus dependency not being added in installer
     LIST(APPEND QT5_COMPONENTS DBus)
