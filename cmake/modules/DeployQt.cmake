@@ -59,6 +59,7 @@ function(windeployqt target)
     install(
         DIRECTORY ${PROJECT_BINARY_DIR}/deployqt_Release/
         DESTINATION bin
+        COMPONENT Main
     )
 endfunction()
 

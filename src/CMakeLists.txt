@@ -85,13 +85,13 @@ endif()
 
 # Install
 if(UNIX AND NOT APPLE)
-    install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release)
-	INSTALL(FILES resources/ecapplog.desktop DESTINATION share/applications CONFIGURATIONS Release)
-	INSTALL(FILES resources/ecapplog.png DESTINATION share/icons CONFIGURATIONS Release)
+    install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT Main)
+	INSTALL(FILES resources/ecapplog.desktop DESTINATION share/applications CONFIGURATIONS Release COMPONENT Main)
+	INSTALL(FILES resources/ecapplog.png DESTINATION share/icons CONFIGURATIONS Release COMPONENT Main)
 elseif(WIN32)
-    install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release)
+    install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT Main)
 elseif(APPLE)
-    install(TARGETS ecapplog BUNDLE DESTINATION . RUNTIME DESTINATION bin CONFIGURATIONS Release)
+    install(TARGETS ecapplog BUNDLE DESTINATION . RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT Main)
     set_source_files_properties(resources/ecapplog.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(ecapplog
         PROPERTIES
