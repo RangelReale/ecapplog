@@ -4,15 +4,15 @@ ECAppLog is a networked logging GUI, intended to be used by programmers debuggin
 
 ![Mac screenshot](./doc/ecapplog_mac.png)
 
-It listens at TCP localhost:13991, waiting for applications to connect and send log messages. The protocol is very straightforward, binary with JSON-based payloads. See [Protocol](#protocol) for more details.
+It listens at TCP localhost:13991, waiting for applications to connect and send log messages. The protocol is very straightforward, sized binary messages with JSON-based payloads. See [Protocol](#protocol) for more details.
 
-It is a Qt-based C++ desktop application, so it is cross-platform (Windows, Mac and Linux), and tries to use as few resources as possible.
+|This is a Qt-based C++ desktop application, so it is cross-platform (Windows, Mac and Linux), and tries to use as few resources as possible.
 
 ## Interface
 
 The interface is based on `applications` containing `categories`. One tab will be created for each connected application, and inside these, one tab will created for each category.
 
-Multiple windows can be created, and docked inside the main window, or float outside it.
+Multiple windows can be created, and docked inside the main window or float outside it.
 
 Tabs (application and/or category) can be added to a filter, and shown together in a special `FILTER` application, grouped in single or multiple tabs.
 
@@ -24,6 +24,7 @@ Right-clicking the tabs and logs shows context menus with more options.
  * Category items-per-second throttling, decrease amount of screen refreshs if high rate of logs
  * Pause and resume
  * Multiple windows and fiters
+ * Slight variation of text color in each line to ease reading
 
 ## Protocol
 
