@@ -6,7 +6,7 @@ ECAppLog is a networked logging GUI, intended to be used by programmers debuggin
 
 It listens at TCP localhost:13991, waiting for applications to connect and send log messages. The protocol is very straightforward, sized binary messages with JSON-based payloads. See [Protocol](#protocol) for more details.
 
-|This is a Qt-based C++ desktop application, so it is cross-platform (Windows, Mac and Linux), and tries to use as few resources as possible.
+This is a Qt-based C++ desktop application, so it is cross-platform (Windows, Mac and Linux), and tries to use as few resources as possible.
 
 ## Interface
 
@@ -62,7 +62,7 @@ This must be the first command sent after the connection is established. It sets
 
  Optional fields:
 
- * `source` [string]: sets the original source this log came from, for example, the JSON in the original format. This can be shown by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
+ * `source` [string]: sets the original source this log came from, for example, the JSON in the original format, or the raw Apache log line. This can be shown by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
  * `original_category` [string]: if set, one extra field will be shown on the log with this field. Use this to indicate this log was redirected from another category.
  * `extra_categories` [string array]: duplicate the log in more categories besides the main one.
 
