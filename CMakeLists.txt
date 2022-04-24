@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11.0)
 
-project(ECAppLog LANGUAGES CXX VERSION 1.0.1)
+project(ECAppLog LANGUAGES CXX VERSION 1.0.2)
 
 #
 # Basic cofiguration
@@ -86,7 +86,7 @@ include(DeployQt)
 
 set(CPACK_PACKAGE_NAME "ECAppLog")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "ECAppLog is a networked logging GUI")                    
-set(CPACK_PACKAGE_VERSION "1.0.1") 
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}") 
 set(CPACK_COMPONENTS_ALL Main)
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_CONTACT "${AUTHOR_NAME} <${AUTHOR_EMAIL}>")
