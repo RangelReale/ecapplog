@@ -22,12 +22,23 @@
 #define MODELROLE_ALTCATEGORY   	Qt::UserRole + 11
 #define MODELROLE_EXTRACATEGORY   	Qt::UserRole + 12
 
+class LogOptions
+{
+public:
+	LogOptions() : color(), bgColor() {}
+	LogOptions(const QString &color, const QString &bgColor = "") : color(color), bgColor(bgColor) {}
+
+	QString color;
+	QString bgColor;
+};
+
 class LogModelItem
 {
 public:
 	LogModelItem(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
     	const QString &message, const QString &source, const QString &altApp = QString(), 
-		const QString &altCategory = QString(), bool isExtraCategory = false);
+		const QString &altCategory = QString(), bool isExtraCategory = false, 
+		const LogOptions& logOptions = LogOptions());
 
 	const QString &getApp() const { return _app; }
 	const QDateTime &getTime() const { return _time; }
@@ -42,6 +53,7 @@ public:
 	QString getDisplayMessage() const;
 
 	QColor priorityColor() const { return _prioritycolor; }
+	QColor bgColor() const { return _bgColor; }
 private:
 	QColor calcPriorityColor() const;
 
@@ -55,7 +67,7 @@ private:
 	QString _altCategory;
 	bool _isExtraCategory;
 
-	QColor _prioritycolor;	
+	QColor _prioritycolor, _bgColor;	
 };
 
 class LogModel : public QAbstractListModel

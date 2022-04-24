@@ -18,6 +18,7 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 {
 	QString f_category, f_time, f_priority, f_message, f_source, f_originalCategory;
     QStringList f_extraCategories;
+    LogOptions f_logOptions;
 
 	if (jsonData.contains("category")) f_category = jsonData.value("category").toString();
 	if (jsonData.contains("time")) f_time = jsonData.value("time").toString();
@@ -33,6 +34,8 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
             f_extraCategories.push_back(catJson.toString());
         }
     }
+    if (jsonData.contains("color")) f_logOptions.color = jsonData.value("color").toString();
+    if (jsonData.contains("bgcolor")) f_logOptions.bgColor = jsonData.value("bgcolor").toString();
 
     QDateTime time;
 	if (!f_time.isEmpty()) {
@@ -45,11 +48,12 @@ void Data::log(const QString &appName, const QJsonObject &jsonData)
 	}
 	if (time.isNull()) time = QDateTime::currentDateTime();
 
-    log(appName, time, f_category, f_priority, f_message, f_source, f_originalCategory, f_extraCategories);
+    log(appName, time, f_category, f_priority, f_message, f_source, f_originalCategory, f_extraCategories, f_logOptions);
 }
 
 void Data::log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QString &originalCategory, const QStringList &extraCategories)
+    const QString &message, const QString &source, const QString &originalCategory, const QStringList &extraCategories,
+    const LogOptions& logOptions)
 {
     QString logCategory(categoryName);
     QString altCategory;
@@ -73,11 +77,11 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         logCategory = "ALL";
     }
 
-    internalLog(appName, time, logCategory, priority, message, source, "", altCategory);
+    internalLog(appName, time, logCategory, priority, message, source, "", altCategory, false, logOptions);
     logFilter(appName, time, logCategory, priority, message, source);
     if (Priority::isErrorOrWarning(priority))
     {
-        internalLog(appName, time, "ERROR", priority, message, source, "", categoryNameComplete);
+        internalLog(appName, time, "ERROR", priority, message, source, "", categoryNameComplete, false, logOptions);
     }
 
     if (!extraCategories.isEmpty())
@@ -85,7 +89,7 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         for ( const auto& extraCategory : extraCategories  )
         {
             if (extraCategory != logCategory) {
-                internalLog(appName, time, extraCategory, priority, message, source, "", categoryNameComplete, true);
+                internalLog(appName, time, extraCategory, priority, message, source, "", categoryNameComplete, true, logOptions);
                 logFilter(appName, time, extraCategory, priority, message, source);
             }
         }
@@ -93,20 +97,21 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
 }
 
 void Data::logFilter(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source)
+    const QString &message, const QString &source, const LogOptions& logOptions)
 {
     for (auto filter : _filterlist)
     {
         if (filter.second->isFilter(appName, categoryName))
         {
             internalLog(filter.second->name(), time, filter.second->filterCategoryName(appName, categoryName), 
-                priority, message, source, appName, categoryName);
+                priority, message, source, appName, categoryName, false, logOptions);
         }
     }
 }
 
 void Data::internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory)
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory,
+    const LogOptions& logOptions)
 {
     if (_paused) return;
 
@@ -130,16 +135,16 @@ void Data::internalLog(const QString &appName, const QDateTime &time, const QStr
         category = createCategory(app, appCategory);
     }
 
-    addToModel(app, category, appName, time, appCategory, priority, message, source, altApp, altCategory, isExtraCategory);
+    addToModel(app, category, appName, time, appCategory, priority, message, source, altApp, altCategory, isExtraCategory, logOptions);
 }
 
 void Data::addToModel(std::shared_ptr<Data_Application> application, std::shared_ptr<Data_Category> category,
     const QString& appName, const QDateTime& time,
     const QString& categoryName, const QString& priority, const QString& message, const QString& source, 
-    const QString& altApp, const QString& altCategory, bool isExtraCategory)
+    const QString& altApp, const QString& altCategory, bool isExtraCategory, const LogOptions& logOptions)
 {
     category->addLog(std::make_shared<LogModelItem>(appName, time, categoryName, priority, message, source,
-        altApp, altCategory, isExtraCategory));
+        altApp, altCategory, isExtraCategory, logOptions));
 }
 
 void Data::removeApplication(const QString &appName)

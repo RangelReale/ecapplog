@@ -7,11 +7,29 @@
 // LogModelItem
 //
 LogModelItem::LogModelItem(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory) : 
+    const QString &message, const QString &source, const QString &altApp, const QString &altCategory, bool isExtraCategory,
+    const LogOptions& logOptions) :
     _app(appName), _time(time), _category(categoryName), _priority(priority), _message(message), 
-    _source(source), _altApp(altApp), _altCategory(altCategory), _isExtraCategory(isExtraCategory)
+    _source(source), _altApp(altApp), _altCategory(altCategory), _isExtraCategory(isExtraCategory), _bgColor()
 {
     _prioritycolor = calcPriorityColor();
+
+    if (!logOptions.color.isEmpty())
+    {
+        QColor c(logOptions.color);
+        if (c.isValid())
+        {
+            _prioritycolor = c;
+        }
+    }
+    if (!logOptions.bgColor.isEmpty())
+    {
+        QColor c(logOptions.bgColor);
+        if (c.isValid())
+        {
+            _bgColor = c;
+        }
+    }
 }
 
 QColor LogModelItem::calcPriorityColor() const
@@ -135,6 +153,9 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
 
 	if (role == Qt::ForegroundRole) {
 		return lst.at(index.row())->priorityColor();
+    }
+    else if (role == Qt::BackgroundRole) {
+        if (lst.at(index.row())->bgColor().isValid()) return lst.at(index.row())->bgColor();
     }
 
 	// if (role == Qt::BackgroundRole && lst.at(index.row())->getHighlight())

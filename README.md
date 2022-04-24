@@ -65,6 +65,8 @@ This must be the first command sent after the connection is established. It sets
  * `source` [string]: sets the original source this log came from, for example, the JSON in the original format, or the raw Apache log line. This can be shown by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
  * `original_category` [string]: if set, one extra field will be shown on the log with this field. Use this to indicate this log was redirected from another category.
  * `extra_categories` [string array]: duplicate the log in more categories besides the main one.
+ * `color` [string]: if set, use this foreground color instead of the priority default one. Format must be `#RRGGBB` (the `#` character is required).
+ * `bgcolor` [string]: if set, use this background color. Format must be `#RRGGBB` (the `#` character is required).
 
 ## Clients
 

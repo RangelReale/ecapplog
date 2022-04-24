@@ -127,7 +127,7 @@ public:
     void log(const QString &appName, const QJsonObject &jsonData);
     void log(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
         const QString &message, const QString &source = QString(), const QString &originalCategory = QString(), 
-        const QStringList &extraCategories = QStringList());
+        const QStringList &extraCategories = QStringList(), const LogOptions &logOptions = LogOptions());
 
     void insertFilter();
     void clearFilter(const QString &filterName);
@@ -162,13 +162,14 @@ private slots:
     void checkExpiredLog();
 private:
     void logFilter(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
-        const QString &message, const QString &source = QString());
+        const QString &message, const QString &source = QString(), const LogOptions& logOptions = LogOptions());
     void internalLog(const QString &appName, const QDateTime &time, const QString &categoryName, const QString &priority,
         const QString &message, const QString &source = QString(), const QString &altApp = QString(), 
-        const QString &altCategory = QString(), bool isExtraCategory = false);
+        const QString &altCategory = QString(), bool isExtraCategory = false, const LogOptions& logOptions = LogOptions());
     void addToModel(std::shared_ptr<Data_Application> application, std::shared_ptr<Data_Category>, 
         const QString& appName, const QDateTime& time, const QString& categoryName, const QString& priority,
-        const QString& message, const QString& source, const QString& altApp, const QString& altCategory, bool isExtraCategory);
+        const QString& message, const QString& source, const QString& altApp, const QString& altCategory, bool isExtraCategory,
+        const LogOptions& logOptions = LogOptions());
 
     std::shared_ptr<Data_Application> createApplication(const QString &appName);
     std::shared_ptr<Data_Category> createCategory(std::shared_ptr<Data_Application>, const QString &categoryName);
