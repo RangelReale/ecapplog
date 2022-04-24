@@ -85,6 +85,9 @@ Windows
 Mac
 ![Mac screenshot](./doc/ecapplog_mac.png)
 
+Mac
+![Linux screenshot](./doc/ecapplog_linux.png)
+
 ## Author
 
 Rangel Reale (rangelreale@gmail.com)
