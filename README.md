@@ -79,13 +79,13 @@ This must be the first command sent after the connection is established. It sets
 
 ## Screenshots
 
-Windows
+Windows  
 ![Windows screenshot](./doc/ecapplog_win.png)
 
-Mac
+Mac  
 ![Mac screenshot](./doc/ecapplog_mac.png)
 
-Mac
+Linux  
 ![Linux screenshot](./doc/ecapplog_linux.png)
 
 ## Author
