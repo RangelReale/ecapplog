@@ -75,7 +75,7 @@ This must be the first command sent after the connection is established. It sets
 
 ## Applications
 
- * [panyl-ecapplog](https://github.com/RangelReale/panyl-ecapplog)
+ * [panyl-ecapplog](https://github.com/RangelReale/panyl-ecapplog) - Panyl is a Golang library to parse logs that may have mixed formats, like log files for multiple services in the same file.
 
 ## Screenshots
 
