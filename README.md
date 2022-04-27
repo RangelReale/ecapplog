@@ -38,7 +38,7 @@ Each protocol message must have this binary format:
 <uint8_t command><uint32_t payload_size_bytes><bytes... payload>
 ```
 
-All strings should be UTF-8 encoded.
+All strings should be UTF-8 encoded, and all binary data should use network byte order.
 
 Currently 2 commands are defined:
 
