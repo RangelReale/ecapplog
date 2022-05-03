@@ -154,6 +154,28 @@ void Data::removeApplication(const QString &appName)
     emit delApplication(appName);
 }
 
+void Data::clearApplication(const QString &appName)
+{
+    auto app = _applicationlist.find(appName);
+    if (app == _applicationlist.end()) return;
+
+    for (auto category : app->second->categoryNames())
+    {
+        removeCategory(appName, category);
+    }
+}
+
+void Data::clearApplicationLogs(const QString &appName)
+{
+    auto app = _applicationlist.find(appName);
+    if (app == _applicationlist.end()) return;
+
+    for (auto category : app->second->categoryNames())
+    {
+        clearCategory(appName, category);
+    }
+}
+
 void Data::removeAllApplications()
 {
     for (auto app : _applicationlist)
@@ -373,6 +395,16 @@ void Data_Application::addCategory(std::shared_ptr<Data_Category> category)
     connect(category.get(), &Data_Category::logAmount, this, &Data_Application::categoryLogAmount);
     connect(category.get(), &Data_Category::logItemsPerSecond, this, &Data_Application::categoryLogItemsPerSecond);
     _categorylist[category->name()] = category;
+}
+
+QStringList Data_Application::categoryNames()
+{
+    QStringList ret;
+    for (auto cat : _categorylist)
+    {
+        ret.append(cat.second->name());
+    }
+    return ret;
 }
 
 bool Data_Application::removeCategory(const QString &categoryName)

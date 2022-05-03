@@ -60,6 +60,7 @@ public:
 
     void addCategory(std::shared_ptr<Data_Category> category);
     std::shared_ptr<Data_Category> findCategory(const QString &categoryName);
+    QStringList categoryNames();
     bool removeCategory(const QString &categoryName);
 
     void checkLogExpiration();
@@ -132,6 +133,8 @@ public:
     void insertFilter();
     void clearFilter(const QString &filterName);
     void removeApplication(const QString &appName);
+    void clearApplication(const QString &appName);
+    void clearApplicationLogs(const QString &appName);
     void removeCategory(const QString &appName, const QString &categoryName);
     void clearCategory(const QString& appName, const QString& categoryName);
 

@@ -244,6 +244,8 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 		menu.addSeparator();
 	}
 
+	QAction* clearCategory = menu.addAction("&Clear categories");
+	QAction* clearCategoryLogs = menu.addAction("C&lear categories' logs");
 	bool appGroupCategories = _data.getApplicationGroupCategories(appName);
 	QAction *groupCategories = menu.addAction("&Group categories");
 	groupCategories->setCheckable(true);
@@ -265,6 +267,16 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 		if (selectedItem == groupCategories)
 		{
 			_data.setApplicationGroupCategories(appName, !appGroupCategories);
+			return;
+		}
+		else if (selectedItem == clearCategory)
+		{
+			_data.clearApplication(appName);
+			return;
+		}
+		else if (selectedItem == clearCategoryLogs)
+		{
+			_data.clearApplicationLogs(appName);
 			return;
 		}
 		if (selectedItem->property("ECL_FILTER").isValid())
@@ -299,7 +311,6 @@ void MainWindow::categoryTabClose(int index)
 	QTabWidget *tabs = qobject_cast<QTabWidget*>(sender());
 	_data.removeCategory(tabs->widget(index)->property(PROPERTY_APPNAME).toString(),
 		tabs->widget(index)->property(PROPERTY_CATEGORYNAME).toString());
-	tabs->removeTab(index);
 }
 
 void MainWindow::categoryTabBarContextMenu(const QPoint &point)
@@ -626,6 +637,18 @@ std::shared_ptr<Main_Category> Main_Application::findCategory(const QString &cat
 
 bool Main_Application::removeCategory(const QString &categoryName)
 {
-	return _categorylist.erase(categoryName) > 0;
+	bool ret = _categorylist.erase(categoryName) > 0;
+	if (ret)
+	{
+		for (int i=0; i < categories->count(); i++)
+		{
+			if (categories->widget(i)->property(PROPERTY_CATEGORYNAME).toString() == categoryName)
+			{
+				categories->removeTab(i);
+				break;
+			}			
+		}
+	}
+	return ret;
 }
 
