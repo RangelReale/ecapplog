@@ -25,6 +25,7 @@ Right-clicking the tabs and logs shows context menus with more options.
  * Pause and resume
  * Multiple windows and fiters
  * Slight variation of text color in each line to ease reading
+ * Try parse JSON from text selection in detail window (even if escaped)
 
 ## Protocol
 
