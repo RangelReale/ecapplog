@@ -82,6 +82,10 @@ public Q_SLOTS:
 	void menuFilterClear();
 	void menuFilterGroupBy();
 
+#ifdef ECAPPLOG_DEBUG_MENUS
+	void menuDebugPublishLogs();
+#endif
+
 	void refreshWindowTitle();
 
 	void applicationTabClose(int index);

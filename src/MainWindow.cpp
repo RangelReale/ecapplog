@@ -20,6 +20,9 @@
 #include <QLabel>
 #include <QBoxLayout>
 #include <QListIterator>
+#ifdef ECAPPLOG_DEBUG_MENUS
+#include <QRandomGenerator>
+#endif
 
 #define FILTERMENU_FILTERNAME       	"ECL_FILTERNAME"
 #define FILTERMENU_GROUPBY       	    "ECL_FILTERGROUPBY"
@@ -69,45 +72,38 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	// menu: EDIT
 	QMenu *editMenu = new QMenu("&Edit", this);
-	
-	QAction *editClear = new QAction("&Clear", this);
-	connect(editClear, SIGNAL(triggered()), this, SLOT(menuEditClear()));
-	editMenu->addAction(editClear);
-
+	editMenu->addAction("&Clear", this, &MainWindow::menuEditClear);
 	editMenu->addSeparator();
-
-	QAction *editPause = new QAction("&Pause", this);
+	QAction *editPause = editMenu->addAction("&Pause", this, &MainWindow::menuEditPause);
 	editPause->setCheckable(true);
-	connect(editPause, SIGNAL(triggered()), this, SLOT(menuEditPause()));
-	editMenu->addAction(editPause);
 
 	menuBar()->addMenu(editMenu);
 
 	// menu: VIEW
 	_viewMenu = new QMenu("&View", this);	
-	QAction *viewGroupCategories = new QAction("&Group categories", this);
+	QAction *viewGroupCategories = _viewMenu->addAction("&Group categories", this, &MainWindow::menuViewGroupCategories);
 	viewGroupCategories->setCheckable(true);
 	viewGroupCategories->setChecked(_data.getGroupCategories());
-	connect(viewGroupCategories, SIGNAL(triggered()), this, SLOT(menuViewGroupCategories()));
-	_viewMenu->addAction(viewGroupCategories);
 	_viewMenu->addSeparator();
-	QAction* viewNewWindow = new QAction("&New window", this);
-	connect(viewNewWindow, &QAction::triggered, this, &MainWindow::menuViewNewWindow);
-	_viewMenu->addAction(viewNewWindow);
+	_viewMenu->addAction("&New window", this, &MainWindow::menuViewNewWindow);
 	_viewMenu->addSeparator();
 
 	menuBar()->addMenu(_viewMenu);
 
 	// menu: FILTER
 	_filterMenu = new QMenu("&Filter", this);
-
-	QAction *filterNewMenu = new QAction("&New filter", this);
-	connect(filterNewMenu, SIGNAL(triggered()), this, SLOT(menuFilterNew()));
-	_filterMenu->addAction(filterNewMenu);
-
+	_filterMenu->addAction("&New filter", this, &MainWindow::menuFilterNew);
 	_filterMenu->addSeparator();
 
 	menuBar()->addMenu(_filterMenu);
+
+#ifdef ECAPPLOG_DEBUG_MENUS
+	// menu: DEBUG
+	QMenu *debugMenu = new QMenu("&Debug", this);
+	debugMenu->addAction("&Publish logs", this, &MainWindow::menuDebugPublishLogs);
+
+	menuBar()->addMenu(debugMenu);
+#endif
 
 	// initialization
 	createWindow();
@@ -245,7 +241,7 @@ void MainWindow::applicationTabBarContextMenu(const QPoint &point)
 	}
 
 	QAction* clearCategory = menu.addAction("&Clear categories");
-	QAction* clearCategoryLogs = menu.addAction("C&lear categories' logs");
+	QAction* clearCategoryLogs = menu.addAction("C&lear all logs from all categories");
 	bool appGroupCategories = _data.getApplicationGroupCategories(appName);
 	QAction *groupCategories = menu.addAction("&Group categories");
 	groupCategories->setCheckable(true);
@@ -350,15 +346,23 @@ void MainWindow::categoryTabBarContextMenu(const QPoint &point)
 	{
 		if (selectedItem == moveToFront)
 		{
+			sourceTabWidget->tabBar()->moveTab(tabIndex, 0);
+
+			/*
 			bool isCurrent = sourceTabWidget->currentIndex() == tabIndex;
 			sourceTabWidget->insertTab(0, sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
 			if (isCurrent) sourceTabWidget->setCurrentIndex(0);
+			*/
 		}
 		else if (selectedItem == moveToBack)
 		{
+			sourceTabWidget->tabBar()->moveTab(tabIndex, sourceTabWidget->count() - 1);
+
+			/*
 			bool isCurrent = sourceTabWidget->currentIndex() == tabIndex;
 			sourceTabWidget->addTab(sourceTabWidget->widget(tabIndex), tabBar->tabText(tabIndex));
 			if (isCurrent) sourceTabWidget->setCurrentIndex(sourceTabWidget->count() - 1);
+			*/
 		}
 		else if (selectedItem == clearCategory)
 		{
@@ -619,6 +623,20 @@ QString MainWindow::formatJSON(const QString &json)
 	return doc.toJson(QJsonDocument::Indented);
 }
 
+#ifdef ECAPPLOG_DEBUG_MENUS
+void MainWindow::menuDebugPublishLogs()
+{
+	QString appName(QString("DEBUG%1").arg(QRandomGenerator::global()->generate() % 100));
+
+	for (int ct=0; ct<100; ct++)
+		_data.log(appName, QDateTime::currentDateTimeUtc(), "debug", Priority::PRIO_DEBUG, QString("Debug message %1").arg(ct));
+	for (int ct=0; ct<98; ct++)
+		_data.log(appName, QDateTime::currentDateTimeUtc(), "info", Priority::PRIO_INFORMATION, QString("Info message %1").arg(ct));
+	for (int ct=0; ct<50; ct++)
+		_data.log(appName, QDateTime::currentDateTimeUtc(), "error", Priority::PRIO_ERROR, QString("Error message %1").arg(ct));
+}
+#endif
+
 //
 // Main_Application
 //
@@ -651,4 +669,3 @@ bool Main_Application::removeCategory(const QString &categoryName)
 	}
 	return ret;
 }
-

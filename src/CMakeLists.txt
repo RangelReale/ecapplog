@@ -49,6 +49,10 @@ add_library(ecapploglib STATIC ${SRCS})
 target_link_libraries(ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
 target_compile_features(ecapploglib PRIVATE cxx_std_17)
 
+if (ECAPPLOG_WITH_DEBUG_MENUS)
+	target_compile_definitions(ecapploglib PRIVATE ECAPPLOG_DEBUG_MENUS)
+endif()
+
 if (ECAPPLOG_BUILD_CONSOLE_EXE)
 	# Executable: console
 	add_executable(ecapplog_console
