@@ -1,8 +1,10 @@
 #include "DetailWindow.h"
 
 #include <QIcon>
+#include <QSplitter>
 #include <QVBoxLayout>
 #include <QMenu>
+#include <QList>
 #include <QJsonDocument>
 #include <QTextCursor>
 #include <QRegExp>
@@ -15,29 +17,37 @@ DetailWindow::DetailWindow(QWidget *parent, QString message, QString source) :
 	setWindowTitle("Detail");
 	setWindowIcon(QIcon(":/ecapplog.png"));
 
-	_tabs = new QTabWidget(this);
-	_tabs->setTabsClosable(false);
+	QSplitter* splitter = new QSplitter(this);
+	splitter->setOrientation(Qt::Vertical);
+	splitter->setChildrenCollapsible(false);
 
 	if (!source.isEmpty()) {
 		_source = new QTextEdit;
 		_source->setText(source);
 		_source->setMinimumWidth(600);
-        _source->setMinimumHeight(450);
 		_source->setContextMenuPolicy(Qt::CustomContextMenu);
 		connect(_source, &QTextEdit::customContextMenuRequested, this, &DetailWindow::textEditContextMenu);
-		_tabs->addTab(_source, "Source");
+		splitter->addWidget(_source);
 	}
 
 	_message = new QTextEdit;
 	_message->setText(message);
 	_message->setMinimumWidth(600);
-    _message->setMinimumHeight(450);
+	if (source.isEmpty()) {
+		_message->setMinimumHeight(450);
+	}
 	_message->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(_message, &QTextEdit::customContextMenuRequested, this, &DetailWindow::textEditContextMenu);
-	_tabs->addTab(_message, "Text");
+	splitter->addWidget(_message);
+
+	if (!source.isEmpty()) {
+		splitter->setStretchFactor(0, 3);
+		splitter->setStretchFactor(1, 1);
+		splitter->setSizes(QList<int>{500, 150});
+	}
 
 	QVBoxLayout *layout = new QVBoxLayout(this);
-	layout->addWidget(_tabs);
+	layout->addWidget(splitter);
 
 	setLayout(layout);
 }

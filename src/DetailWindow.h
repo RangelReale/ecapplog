@@ -8,7 +8,6 @@
 
 #include <QTextEdit>
 #include <QDialog>
-#include <QTabWidget>
 #include <QJsonDocument>
 
 class DetailWindow : public QDialog
@@ -23,7 +22,6 @@ private:
 	void tryFormatJSON(const QString &text, QTextEdit *output);
 	QJsonDocument tryParseJSON(const QString &text);
 
-	QTabWidget *_tabs;
 	QTextEdit *_message;
 	QTextEdit *_source;
 };
