@@ -21,11 +21,20 @@ set(CMAKE_AUTOUIC ON)
 include(InstallRequiredSystemLibraries)
 
 #
+# Platform specific configuration
+#
+# set(CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")   # https://gitlab.kitware.com/cmake/cmake/-/issues/21854
+
+#
 # Options
 #
 option(ECAPPLOG_BUILD_INSTALLER "Build installer" OFF)
 option(ECAPPLOG_BUILD_CONSOLE_EXE "Build console exe debug version" OFF)
 option(ECAPPLOG_WITH_DEBUG_MENUS "Enable debug menus" OFF)
+
+if(APPLE)
+    option(ECAPPLOG_DISABLE_XCODE_CODESIGNING "Disable codesigning in XCode" OFF)
+endif()
 
 #
 # Project information

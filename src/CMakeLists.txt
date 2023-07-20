@@ -61,11 +61,16 @@ if (ECAPPLOG_BUILD_CONSOLE_EXE)
 	)
 	target_compile_features(ecapplog_console PRIVATE cxx_std_17)
 	set_target_properties(ecapplog_console PROPERTIES
-		XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
-		XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
 		RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 		LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 	)
+    if(ECAPPLOG_DISABLE_XCODE_CODESIGNING)
+        set_target_properties(ecapplog_console PROPERTIES
+            XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+        )
+    endif()
+
 	target_link_libraries(ecapplog_console ecapploglib Qt5::Widgets Qt5::Network ${LIB_LINK})
 endif()
 
@@ -76,11 +81,17 @@ add_executable(ecapplog WIN32 MACOSX_BUNDLE
 )
 target_compile_features(ecapplog PRIVATE cxx_std_17)
 set_target_properties(ecapplog PROPERTIES
-    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
-    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
 	MACOSX_BUNDLE ON
 	MACOSX_RPATH ON
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${PROJECT_NAME}
+    XCODE_ATTRIBUTE_PRODUCT_NAME ${PROJECT_NAME}
 )
+if(ECAPPLOG_DISABLE_XCODE_CODESIGNING)
+    set_target_properties(ecapplog PROPERTIES
+        XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    )
+endif()
 target_link_libraries(ecapplog ecapploglib Qt5::Widgets Qt5::Network ${LIB_LINK})
 if (APPLE)
 	# Hack for QtDebus dependency not being added in installer

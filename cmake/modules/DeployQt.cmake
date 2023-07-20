@@ -71,6 +71,14 @@ function(macdeployqt target)
             \"$<TARGET_FILE_DIR:${target}>/../..\"
         COMMENT "Deploying Qt..."
     )
+	# add_custom_target(TARGET ${target} POST_BUILD
+	# 	# COMMAND codesign ---force --deep --sign -
+	# 	# 	$<TARGET_FILE_DIR:${target}>/../Frameworks/*
+	# 	# 	$<TARGET_FILE_DIR:${target}>/../PlugIns/*/*
+	# 	COMMAND codesign --force --deep --sign - $<TARGET_FILE_DIR:${target}>/../..
+    #     COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan
+    #                "Codesign executed - $<TARGET_FILE_DIR:${target}>."
+	# )    
 endfunction()
 
 mark_as_advanced(WINDEPLOYQT_EXECUTABLE MACDEPLOYQT_EXECUTABLE)
