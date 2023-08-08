@@ -69,7 +69,7 @@ function(macdeployqt target)
     add_custom_command(TARGET ${target} POST_BUILD
         COMMAND "${MACDEPLOYQT_EXECUTABLE}"
         \"$<TARGET_FILE_DIR:${target}>/../..\"
-        -sign-for-notarization=${ECAPPLOG_XCODE_CODE_SIGN_IDENTITY}
+        -codesign=${ECAPPLOG_XCODE_CODE_SIGN_IDENTITY}
         COMMENT "Deploying Qt..."
     )
 endfunction()
