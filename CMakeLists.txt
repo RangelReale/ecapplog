@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.11.0)
+cmake_minimum_required(VERSION 3.20.0)
 
-project(ECAppLog LANGUAGES CXX VERSION 1.0.4)
+project(ECAppLog LANGUAGES CXX VERSION 1.0.5)
 
 #
 # Basic cofiguration
@@ -131,6 +131,7 @@ if (APPLE)
     set(CPACK_GENERATOR "DragNDrop")
 
     set(CPACK_DMG_VOLUME_NAME ${APP_NAME})
+    set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_SOURCE_DIR}/cmake/modules/SignMacApplications.cmake)
 endif()
 
 include(CPack)
