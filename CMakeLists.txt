@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20.0)
 
-project(ECAppLog LANGUAGES CXX VERSION 1.0.5)
+project(ECAppLog LANGUAGES CXX VERSION 1.0.6)
 
 #
 # Basic cofiguration
