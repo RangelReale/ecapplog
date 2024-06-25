@@ -76,6 +76,7 @@ public Q_SLOTS:
 
 	void menuEditClear();
 	void menuEditPause();
+    void menuViewFont();
 	void menuViewGroupCategories();
 	void menuViewNewWindow();
 	void menuFilterNew();

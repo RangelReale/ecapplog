@@ -86,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	viewGroupCategories->setChecked(_data.getGroupCategories());
 	_viewMenu->addSeparator();
 	_viewMenu->addAction("&New window", this, &MainWindow::menuViewNewWindow);
+    _viewMenu->addAction("&Font size", this, &MainWindow::menuViewFont);
 	_viewMenu->addSeparator();
 
 	menuBar()->addMenu(_viewMenu);
@@ -175,6 +176,20 @@ void MainWindow::menuViewGroupCategories()
 void MainWindow::menuViewNewWindow()
 {
 	createWindow();
+}
+
+void MainWindow::menuViewFont()
+{
+    bool ok;
+    int newSize = QInputDialog::getInt(this, "Change font size", "Font size:",
+        qApp->font().pointSize(), 10, 98, 2, &ok);
+    if (ok)
+    {
+        QFont font = qApp->font();
+        font.setPointSize(newSize);
+        qApp->setFont(font);
+        update();
+    }
 }
 
 void MainWindow::menuFilterNew()
