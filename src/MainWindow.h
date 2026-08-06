@@ -24,13 +24,14 @@ class Main_Category : public QObject
 {
 	Q_OBJECT
 public:
-	Main_Category(const QString &name, QTabWidget *apptabs, QListView *logs, QLabel *logsamount) : 
-		name(name), apptabs(apptabs), logs(logs), logsamount(logsamount) {}
+	Main_Category(const QString &name, QTabWidget *apptabs, QListView *logs, QLabel *logsamount) :
+		name(name), apptabs(apptabs), logs(logs), logsamount(logsamount), header(nullptr) {}
 
 	QString name;
 	QTabWidget *apptabs;
 	QListView *logs;
 	QLabel *logsamount;
+	QLabel *header;		// retained so the font size can be kept in step with the log text
 };
 
 class Main_Application : public QObject
@@ -45,6 +46,7 @@ public:
 	void addCategory(std::shared_ptr<Main_Category> category);
 	std::shared_ptr<Main_Category> findCategory(const QString &categoryName);
 	bool removeCategory(const QString &categoryName);
+	void applyFont(const QFont &headerFont);
 private:
 	typedef std::map<QString, std::shared_ptr<Main_Category> > categorylist_t;	
 	categorylist_t _categorylist;
@@ -88,6 +90,7 @@ public Q_SLOTS:
 #endif
 
 	void refreshWindowTitle();
+	void applyFontSize(int pointSize);
 
 	void applicationTabClose(int index);
 	void applicationTabBarContextMenu(const QPoint &point);
@@ -105,6 +108,7 @@ private:
 	Server _server;
 	Data _data;
 	int _dockCount;
+	int _fontSize;
 
 	typedef std::map<QString, std::shared_ptr<Main_Application> > applicationlist_t;
 	applicationlist_t _applicationlist;

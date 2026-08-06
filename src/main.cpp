@@ -9,9 +9,8 @@ int main(int argc, char *argv[])
 	app.setOrganizationName("RangelReale");
 	app.setOrganizationDomain("rangelreale.com");
 	app.setApplicationName("ECAppLog");
-    QFont font = app.font();
-    font.setPointSize(16);
-    app.setFont(font);
+	// The font size is owned by MainWindow (see MainWindow::applyFontSize): it has to be applied
+	// after setStyle() below and once widgets exist, neither of which is true here.
 #ifdef Q_OS_DARWIN
 	// Use "fusion" style on Mac to have scrollable tabs in QTabWidget
 	app.setStyle(QStyleFactory::create("Fusion"));

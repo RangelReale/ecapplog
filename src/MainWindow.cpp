@@ -20,6 +20,8 @@
 #include <QLabel>
 #include <QBoxLayout>
 #include <QListIterator>
+#include <QTimer>
+#include <QEvent>
 #ifdef ECAPPLOG_DEBUG_MENUS
 #include <QRandomGenerator>
 #endif
@@ -27,12 +29,19 @@
 #define FILTERMENU_FILTERNAME       	"ECL_FILTERNAME"
 #define FILTERMENU_GROUPBY       	    "ECL_FILTERGROUPBY"
 
+// Font size bounds offered by View -> Font size, and how much larger a category header is drawn
+// than the log text below it.
+#define MIN_FONT_SIZE			10
+#define MAX_FONT_SIZE			98
+#define DEFAULT_FONT_SIZE		16
+#define HEADER_FONT_OFFSET		4
+
 
 MainWindow *MainWindow::self;
 
 MainWindow::MainWindow(QWidget *parent) :
-	QMainWindow(parent), _applicationlist(), _dockCount(0), _rootWindow(nullptr),
-	_data(), _server()
+	QMainWindow(parent), _applicationlist(), _dockCount(0), _fontSize(DEFAULT_FONT_SIZE),
+	_rootWindow(nullptr), _data(), _server()
 {
 	MainWindow::self = this;
 	QSettings settings;
@@ -44,6 +53,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	// settings
 	_data.setGroupCategories(settings.value("group_categories", false).toBool());
+	// clamped to the range menuViewFont offers, so a hand-edited value cannot produce an
+	// unusable window
+	_fontSize = qBound(MIN_FONT_SIZE, settings.value("font_size", DEFAULT_FONT_SIZE).toInt(),
+		MAX_FONT_SIZE);
 
 	_dockManager = new ads::CDockManager(this);
 
@@ -109,6 +122,39 @@ MainWindow::MainWindow(QWidget *parent) :
 	// initialization
 	createWindow();
 	menuFilterNew();
+
+	applyFontSize(_fontSize);
+	// ...and again once the event loop is running. Widgets that resolve their font lazily (the
+	// macOS theme supplies per-widget-class fonts) would otherwise keep the system size until the
+	// user opened the dialog, which is exactly the startup bug this fixes.
+	QTimer::singleShot(0, this, [this] { applyFontSize(_fontSize); });
+}
+
+void MainWindow::applyFontSize(int pointSize)
+{
+	_fontSize = pointSize;
+
+	QFont font = qApp->font();
+	font.setPointSize(pointSize);
+	qApp->setFont(font);	// so widgets created later inherit the size
+
+	// Propagate to existing widgets explicitly instead of relying on setFont to do it:
+	// QApplication only notifies them when it has a per-widget-class font hash to clear, which is
+	// why the first size change worked and every later one appeared to do nothing.
+	QEvent fontChange(QEvent::ApplicationFontChange);
+	for (QWidget *widget : qApp->allWidgets())
+	{
+		qApp->sendEvent(widget, &fontChange);
+	}
+
+	// Category headers stay deliberately larger than the log text.
+	QFont headerFont(font);
+	headerFont.setPointSize(pointSize + HEADER_FONT_OFFSET);
+
+	for (auto &entry : _applicationlist)
+	{
+		entry.second->applyFont(headerFont);
+	}
 }
 
 QTabWidget *MainWindow::createWindow()
@@ -181,14 +227,16 @@ void MainWindow::menuViewNewWindow()
 void MainWindow::menuViewFont()
 {
     bool ok;
+    // Seeded from _fontSize rather than qApp->font().pointSize(), which returns -1 when the
+    // platform font is specified in pixels rather than points.
     int newSize = QInputDialog::getInt(this, "Change font size", "Font size:",
-        qApp->font().pointSize(), 10, 98, 2, &ok);
+        _fontSize, MIN_FONT_SIZE, MAX_FONT_SIZE, 2, &ok);
     if (ok)
     {
-        QFont font = qApp->font();
-        font.setPointSize(newSize);
-        qApp->setFont(font);
-        update();
+        applyFontSize(newSize);
+
+        QSettings settings;
+        settings.setValue("font_size", newSize);
     }
 }
 
@@ -523,10 +571,11 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	categoryParent->setLayout(layout);
 	
 	QLabel *categoryLabel = new QLabel(categoryName);
+	category->header = categoryLabel;
 	categoryLabel->setAlignment(Qt::AlignCenter);
 	categoryLabel->setStyleSheet("QLabel {padding: 4px 0;}");
 	QFont font = categoryLabel->font();
-	font.setPointSize(20);
+	font.setPointSize(_fontSize + HEADER_FONT_OFFSET);
 	categoryLabel->setFont(font);
 	QPalette palette = categoryLabel->palette();	
 	palette.setColor(categoryLabel->foregroundRole(), QColor(Qt::white));
@@ -666,6 +715,19 @@ std::shared_ptr<Main_Category> Main_Application::findCategory(const QString &cat
 	auto find = _categorylist.find(categoryName);
 	if (find == _categorylist.end()) return std::shared_ptr<Main_Category>();
 	return find->second;
+}
+
+void Main_Application::applyFont(const QFont &headerFont)
+{
+	for (auto &entry : _categorylist)
+	{
+		auto category = entry.second;
+		if (category->header) category->header->setFont(headerFont);
+		// LogDelegate::sizeHint derives row height and column widths entirely from the font
+		// metrics, and the view caches them: without a relayout the text resizes but the rows
+		// keep their old geometry.
+		if (category->logs) category->logs->doItemsLayout();
+	}
 }
 
 bool Main_Application::removeCategory(const QString &categoryName)
