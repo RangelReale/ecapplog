@@ -152,6 +152,16 @@ if (APPLE)
     set(CPACK_GENERATOR "DragNDrop")
 
     set(CPACK_DMG_VOLUME_NAME ${APP_NAME})
+
+    # Default would be "ECAppLog-1.0.6-Darwin.dmg", which tells a downloader nothing about which
+    # Mac it runs on. The bundled Qt is single-architecture, so name the artifact accordingly.
+    if(CMAKE_OSX_ARCHITECTURES)
+        string(REPLACE ";" "-" _pkg_arch "${CMAKE_OSX_ARCHITECTURES}")
+    else()
+        set(_pkg_arch "${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+    set(CPACK_PACKAGE_FILE_NAME
+        "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-macOS-${_pkg_arch}")
     set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_SOURCE_DIR}/cmake/modules/SignMacApplications.cmake)
     set(CPACK_POST_BUILD_SCRIPTS ${CMAKE_SOURCE_DIR}/cmake/modules/NotarizeMacPackage.cmake)
 
@@ -162,5 +172,37 @@ if (APPLE)
 endif()
 
 include(CPack)
+
+#
+# Release targets (make release / make release-check)
+#
+if (APPLE)
+    # "make release-check" verifies an already-packaged DMG without publishing anything.
+    add_custom_target(release-check
+        COMMAND "${CMAKE_SOURCE_DIR}/scripts/release-mac.sh"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --version "${PROJECT_VERSION}"
+                --verify-only
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        USES_TERMINAL
+        COMMENT "Verifying the macOS package is signed, notarized and stapled"
+        VERBATIM)
+
+    # "make release" builds, packages, verifies, tags and uploads to GitHub Releases.
+    # USES_TERMINAL so the script's confirmation prompt is actually visible and answerable.
+    add_custom_target(release
+        COMMAND "${CMAKE_CPACK_COMMAND}"
+                --config "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
+                -B "${CMAKE_BINARY_DIR}"
+        COMMAND "${CMAKE_SOURCE_DIR}/scripts/release-mac.sh"
+                --build-dir "${CMAKE_BINARY_DIR}"
+                --version "${PROJECT_VERSION}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        USES_TERMINAL
+        COMMENT "Packaging and publishing the macOS release"
+        VERBATIM)
+    # Depend on the app rather than shelling out to a nested build of this same tree.
+    add_dependencies(release ecapplog)
+endif()
 
 endif()
