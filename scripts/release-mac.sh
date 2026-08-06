@@ -14,6 +14,7 @@ BUILD_DIR="build-release"
 DMG=""
 VERSION=""
 TAG=""
+NOTES_FILE=""
 DRAFT=1
 ASSUME_YES=0
 VERIFY_ONLY=0
@@ -26,6 +27,7 @@ Usage: scripts/release-mac.sh [options]
   --dmg PATH        explicit path to the DMG (default: newest *.dmg in the build dir)
   --version X.Y.Z   release version (default: parsed from the DMG file name)
   --tag TAG         git tag to release (default: v<version>)
+  --notes-file PATH markdown file to use as the release notes (default: a generic one-liner)
   --publish         publish immediately instead of creating a draft
   --verify-only     run the notarization checks and stop
   -y, --yes         do not prompt before tagging, pushing and uploading
@@ -43,6 +45,7 @@ while [ $# -gt 0 ]; do
         --dmg)       DMG="${2:?missing value}"; shift 2 ;;
         --version)   VERSION="${2:?missing value}"; shift 2 ;;
         --tag)       TAG="${2:?missing value}"; shift 2 ;;
+        --notes-file) NOTES_FILE="${2:?missing value}"; shift 2 ;;
         --publish)   DRAFT=0; shift ;;
         --verify-only) VERIFY_ONLY=1; shift ;;
         -y|--yes)    ASSUME_YES=1; shift ;;
@@ -52,6 +55,12 @@ while [ $# -gt 0 ]; do
 done
 
 [ "$(uname -s)" = "Darwin" ] || die "this script only runs on macOS"
+
+# Checked up front rather than at upload time: a missing notes file must not surface after the tag
+# has already been created and pushed.
+if [ -n "$NOTES_FILE" ] && [ ! -f "$NOTES_FILE" ]; then
+    die "no such notes file: $NOTES_FILE"
+fi
 
 #
 # Locate the package
@@ -172,8 +181,12 @@ git push origin "$TAG"
 release_args=(
     --repo "$repo"
     --title "ECAppLog $VERSION"
-    --notes "Signed and notarized macOS build. Requires macOS 11 (Big Sur) or later."
 )
+if [ -n "$NOTES_FILE" ]; then
+    release_args+=(--notes-file "$NOTES_FILE")
+else
+    release_args+=(--notes "Signed and notarized macOS build. Requires macOS 11 (Big Sur) or later.")
+fi
 if [ "$DRAFT" -eq 1 ]; then
     release_args+=(--draft)
 fi
