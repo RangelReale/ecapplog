@@ -38,6 +38,16 @@ ECAppLog uses TCP because ordering is very important, and messages cannot be los
 
 The GUI listens at localhost, TCP port 13991.
 
+The protocol has no authentication, so localhost is the default. To accept connections from
+applications running in a container or a virtual machine, opt in to binding all interfaces:
+
+```
+# Mac
+defaults write com.rangelreale.ECAppLog listen_all_interfaces -bool true
+# Linux: set listen_all_interfaces=true in ~/.config/rangelreale.com/ECAppLog.conf
+# Windows: set listen_all_interfaces to true under HKCU\Software\RangelReale\ECAppLog
+```
+
 Each protocol message must have this binary format:
 
 ```
@@ -45,6 +55,8 @@ Each protocol message must have this binary format:
 ```
 
 All strings should be UTF-8 encoded, and all binary data should use network byte order.
+A single message payload may be at most 16 MB; larger frames are rejected and the connection is
+closed.
 
 Currently 2 commands are defined:
 

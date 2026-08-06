@@ -46,7 +46,10 @@ QColor LogModelItem::calcPriorityColor() const
 	if (_priority == Priority::PRIO_FATAL || _priority == Priority::PRIO_CRITICAL || _priority == Priority::PRIO_ERROR)
 		return QColor((QRandomGenerator::global()->generate() % 55) + 200, 0, 0);
 
-	return QColor(0, 0, 0);
+	// Invalid on purpose: an unknown priority has no colour of its own, and hardcoding black made
+	// those lines unreadable under a dark theme. data() omits ForegroundRole when this is invalid,
+	// which leaves the view to use its own palette.
+	return QColor();
 }
 
 QString LogModelItem::getDisplayMessage() const
@@ -152,7 +155,7 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
     }
 
 	if (role == Qt::ForegroundRole) {
-		return lst.at(index.row())->priorityColor();
+		if (lst.at(index.row())->priorityColor().isValid()) return lst.at(index.row())->priorityColor();
     }
     else if (role == Qt::BackgroundRole) {
         if (lst.at(index.row())->bgColor().isValid()) return lst.at(index.row())->bgColor();

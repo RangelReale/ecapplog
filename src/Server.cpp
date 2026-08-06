@@ -3,6 +3,7 @@
 
 #include <QDataStream>
 #include <QJsonDocument>
+#include <QSettings>
 
 //
 // ApplicationInfo
@@ -68,7 +69,14 @@ bool Server::startServer()
 {
 	int port = 13991;
 
-	if (!this->listen(QHostAddress::Any, port))
+	// Localhost by default. The protocol has no authentication, so listening on every interface
+	// exposes the log stream to anyone on the network. Applications logging in from a container
+	// or a VM do need all interfaces, hence the opt-in.
+	QSettings settings;
+	QHostAddress address = settings.value("listen_all_interfaces", false).toBool()
+		? QHostAddress::Any : QHostAddress::LocalHost;
+
+	if (!this->listen(address, port))
 	{
 		return false;
 	}
@@ -118,6 +126,18 @@ void Server::onReadyRead()
 		QByteArray data;
 		in >> cmd; // read command
 		in >> size; // try to read packet atomically
+
+		// Reject an implausible length before allocating anything. The status check matters: on a
+		// short read the transaction leaves size at 0, which must fall through to
+		// commitTransaction() below and wait for more data rather than look like a bad frame.
+		if (in.status() == QDataStream::Ok && size > MAX_PAYLOAD_SIZE) {
+			in.abortTransaction();
+			emit onError(applicationName(*appInfo),
+				QString("Payload too large (%1 bytes), disconnecting").arg(size));
+			clientSocket->close();
+			return;
+		}
+
 		if (size > 0) {
 			data.resize(size);
 			in.readRawData(data.data(), size);
