@@ -8,6 +8,11 @@ It listens at TCP localhost:13991, waiting for applications to connect and send 
 
 This is a Qt-based C++ desktop application, so it is cross-platform (Windows, Mac and Linux), and tries to use as few resources as possible.
 
+## Requirements
+
+The released Mac package is signed, notarized, and built for Apple Silicon, and requires macOS 11
+(Big Sur) or later. Intel Macs need a build against an x86_64 Qt.
+
 ## Interface
 
 The interface is based on `applications` containing `categories`. One tab will be created for each connected application, and inside these, one tab will created for each category.

@@ -37,6 +37,7 @@ if(APPLE AND NOT MACDEPLOYQT_EXECUTABLE)
     message(FATAL_ERROR "macdeployqt not found")
 endif()
 
+
 # Add commands that copy the required Qt files to the same directory as the
 # target after being built as well as including them in final installation
 function(windeployqt target)
@@ -66,11 +67,30 @@ endfunction()
 # Add commands that copy the required Qt files to the application bundle
 # represented by the target.
 function(macdeployqt target)
+    if(NOT ECAPPLOG_MAC_SIGN_IDENTITY)
+        message(FATAL_ERROR
+            "ECAPPLOG_MAC_SIGN_IDENTITY is required when ECAPPLOG_BUILD_INSTALLER is ON.\n"
+            "List identities with: security find-identity -v -p codesigning")
+    endif()
+    # -sign-for-notarization implies -codesign, -hardened-runtime and -timestamp, and applies
+    # them inside-out over every bundled framework and plugin. Hardened runtime is mandatory
+    # for the notary service to accept the submission.
+    # VERBATIM is required: a "Developer ID Application: Name (TEAMID)" identity contains spaces
+    # and parentheses, and without it CMake escapes the spaces but leaves the parentheses bare,
+    # which the shell then treats as a subshell. VERBATIM also means the bundle path must be
+    # passed unquoted here (CMake quotes it), so use TARGET_BUNDLE_DIR rather than the
+    # TARGET_FILE_DIR/../.. dance.
     add_custom_command(TARGET ${target} POST_BUILD
         COMMAND "${MACDEPLOYQT_EXECUTABLE}"
-        \"$<TARGET_FILE_DIR:${target}>/../..\"
-        -codesign=${ECAPPLOG_XCODE_CODE_SIGN_IDENTITY}
-        COMMENT "Deploying Qt..."
+        "$<TARGET_BUNDLE_DIR:${target}>"
+        -always-overwrite
+        "-sign-for-notarization=${ECAPPLOG_MAC_SIGN_IDENTITY}"
+        COMMAND "${CMAKE_COMMAND}"
+        "-DBUNDLE=$<TARGET_BUNDLE_DIR:${target}>"
+        "-DSIGN_IDENTITY=${ECAPPLOG_MAC_SIGN_IDENTITY}"
+        -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/PruneMacBundle.cmake"
+        VERBATIM
+        COMMENT "Deploying Qt and signing for notarization..."
     )
 endfunction()
 

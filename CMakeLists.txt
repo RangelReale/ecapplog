@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.20.0)
 
+# Must be set before project(), otherwise the compiler probe bakes in the host SDK version
+# and the binary ends up requiring the exact macOS release it was built on. 11.0 matches the
+# LC_BUILD_VERSION minos of the bundled Qt 5.15 frameworks.
+# Tests for empty rather than DEFINED so that a pre-existing cache holding an empty value is
+# corrected too; an explicit -DCMAKE_OSX_DEPLOYMENT_TARGET=... is still respected.
+if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
+endif()
+
 project(ECAppLog LANGUAGES CXX VERSION 1.0.6)
 
 #
@@ -29,8 +38,20 @@ option(ECAPPLOG_WITH_DEBUG_MENUS "Enable debug menus" OFF)
 
 if(APPLE)
     option(ECAPPLOG_DISABLE_XCODE_CODESIGNING "Disable codesigning in XCode" OFF)
-    # list available ones with command "security find-identity -v -p codesignin"
-    SET(ECAPPLOG_XCODE_CODE_SIGN_IDENTITY CACHE STRING "Xcode code sign identidy")
+    option(ECAPPLOG_NOTARIZE "Notarize and staple the package (needs network + credentials)" OFF)
+
+    # A "Developer ID Application" identity is required to distribute outside the App Store.
+    # List available ones with: security find-identity -v -p codesigning
+    # Accepts either the full name or the SHA-1 hash.
+    SET(ECAPPLOG_XCODE_CODE_SIGN_IDENTITY CACHE STRING "Deprecated alias for ECAPPLOG_MAC_SIGN_IDENTITY")
+    set(ECAPPLOG_MAC_SIGN_IDENTITY "${ECAPPLOG_XCODE_CODE_SIGN_IDENTITY}" CACHE STRING
+        "Developer ID Application identity (name or SHA-1 hash)")
+
+    # Created once with:
+    #   xcrun notarytool store-credentials "ecapplog-notary" \
+    #       --apple-id <email> --team-id <TEAMID> --password <app-specific-password>
+    set(ECAPPLOG_NOTARY_PROFILE "ecapplog-notary" CACHE STRING
+        "notarytool keychain profile name")
 endif()
 
 #
@@ -132,6 +153,12 @@ if (APPLE)
 
     set(CPACK_DMG_VOLUME_NAME ${APP_NAME})
     set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_SOURCE_DIR}/cmake/modules/SignMacApplications.cmake)
+    set(CPACK_POST_BUILD_SCRIPTS ${CMAKE_SOURCE_DIR}/cmake/modules/NotarizeMacPackage.cmake)
+
+    # The pre/post build scripts run in a separate CMake process that only inherits CPACK_* vars.
+    set(CPACK_MAC_SIGN_IDENTITY "${ECAPPLOG_MAC_SIGN_IDENTITY}")
+    set(CPACK_MAC_NOTARIZE "${ECAPPLOG_NOTARIZE}")
+    set(CPACK_MAC_NOTARY_PROFILE "${ECAPPLOG_NOTARY_PROFILE}")
 endif()
 
 include(CPack)
