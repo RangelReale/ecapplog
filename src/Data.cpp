@@ -55,6 +55,12 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
     const QString &message, const QString &source, const QString &originalCategory, const QStringList &extraCategories,
     const LogOptions& logOptions)
 {
+    // The JSON overload substitutes the current time for a missing one, but callers of this
+    // overload (the internal diagnostics in MainWindow) pass a null QDateTime and would otherwise
+    // render with an empty time column. Doing it here covers both entry points.
+    QDateTime logTime(time);
+    if (logTime.isNull()) logTime = QDateTime::currentDateTime();
+
     QString logCategory(categoryName);
     QString altCategory;
     QString categoryNameComplete(categoryName);
@@ -77,11 +83,11 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         logCategory = "ALL";
     }
 
-    internalLog(appName, time, logCategory, priority, message, source, "", altCategory, false, logOptions);
-    logFilter(appName, time, logCategory, priority, message, source);
+    internalLog(appName, logTime, logCategory, priority, message, source, "", altCategory, false, logOptions);
+    logFilter(appName, logTime, logCategory, priority, message, source, logOptions);
     if (Priority::isErrorOrWarning(priority))
     {
-        internalLog(appName, time, "ERROR", priority, message, source, "", categoryNameComplete, false, logOptions);
+        internalLog(appName, logTime, "ERROR", priority, message, source, "", categoryNameComplete, false, logOptions);
     }
 
     if (!extraCategories.isEmpty())
@@ -89,8 +95,8 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
         for ( const auto& extraCategory : extraCategories  )
         {
             if (extraCategory != logCategory) {
-                internalLog(appName, time, extraCategory, priority, message, source, "", categoryNameComplete, true, logOptions);
-                logFilter(appName, time, extraCategory, priority, message, source);
+                internalLog(appName, logTime, extraCategory, priority, message, source, "", categoryNameComplete, true, logOptions);
+                logFilter(appName, logTime, extraCategory, priority, message, source, logOptions);
             }
         }
     }

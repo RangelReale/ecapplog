@@ -31,5 +31,10 @@ enum Command
 	CMD_LOG			= 0,
 };
 
+// Ceiling on a single protocol frame. Without it a hostile or corrupt length prefix is a remote
+// memory exhaustion, and any value above INT_MAX overflows the int parameter of
+// QByteArray::resize before allocation is even attempted.
+#define MAX_PAYLOAD_SIZE (16 * 1024 * 1024)
+
 #define PROPERTY_APPNAME "ecapplog_application"
 #define PROPERTY_CATEGORYNAME "ecapplog_category"
