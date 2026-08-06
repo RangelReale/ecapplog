@@ -132,6 +132,15 @@ remote_url=$(git remote get-url origin)
 repo=$(printf '%s' "$remote_url" | sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##')
 [ -n "$repo" ] || die "could not derive owner/repo from remote '$remote_url'"
 
+# The branch has to reach origin as well as the tag. Pushing only the tag leaves the release
+# pointing at a commit that is not reachable from the branch, so the version bump never shows up in
+# the repository history.
+branch=$(git rev-parse --abbrev-ref HEAD)
+[ "$branch" != "HEAD" ] || die "detached HEAD — check out a branch before releasing"
+git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1 \
+    || die "branch '$branch' has no upstream — push it once with: git push -u origin $branch"
+unpushed=$(git rev-list --count '@{upstream}'..HEAD)
+
 create_tag=1
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
     if [ "$(git rev-list -n1 "$TAG")" != "$(git rev-parse HEAD)" ]; then
@@ -158,7 +167,12 @@ if [ "$ASSUME_YES" -eq 0 ]; then
         state="published immediately"
     fi
     printf '\n'
+    branch_note="already up to date with origin"
+    if [ "$unpushed" -gt 0 ]; then
+        branch_note="$unpushed commit(s) will be pushed"
+    fi
     printf 'About to release to %s:\n' "$repo"
+    printf '  branch : %s (%s)\n' "$branch" "$branch_note"
     printf '  tag    : %s%s, pushed to origin\n' "$TAG" "$tag_note"
     printf '  asset  : %s\n' "$DMG"
     printf '  state  : %s\n' "$state"
@@ -168,6 +182,13 @@ if [ "$ASSUME_YES" -eq 0 ]; then
         [yY]|[yY][eE][sS]) ;;
         *) die "aborted" ;;
     esac
+fi
+
+# Branch before tag, deliberately: if the branch push is rejected (non-fast-forward, no
+# permission) the release aborts here, rather than after a tag has already reached origin.
+if [ "$unpushed" -gt 0 ]; then
+    info "pushing $branch to origin ($unpushed commit(s))"
+    git push origin "$branch"
 fi
 
 if [ "$create_tag" -eq 1 ]; then
