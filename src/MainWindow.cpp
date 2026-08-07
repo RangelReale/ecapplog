@@ -22,6 +22,7 @@
 #include <QListIterator>
 #include <QTimer>
 #include <QEvent>
+#include <QFontInfo>
 #ifdef ECAPPLOG_DEBUG_MENUS
 #include <QRandomGenerator>
 #endif
@@ -30,17 +31,35 @@
 #define FILTERMENU_GROUPBY       	    "ECL_FILTERGROUPBY"
 
 // Font size bounds offered by View -> Font size, and how much larger a category header is drawn
-// than the log text below it.
-#define MIN_FONT_SIZE			10
+// than the log text below it. The lower bound has to stay below the smallest platform font size we
+// might adopt as a default (Windows uses 9pt), otherwise defaultFontSize() gets clamped upwards.
+#define MIN_FONT_SIZE			8
 #define MAX_FONT_SIZE			98
-#define DEFAULT_FONT_SIZE		16
+#define MAC_DEFAULT_FONT_SIZE	16
 #define HEADER_FONT_OFFSET		4
+
+namespace {
+
+// macOS is the only platform whose font we override: the system font reads small next to the Fusion
+// style substituted in main.cpp. Everywhere else the platform font is the right starting point.
+int defaultFontSize()
+{
+#ifdef Q_OS_DARWIN
+	return MAC_DEFAULT_FONT_SIZE;
+#else
+	// QFontInfo resolves the size actually in use, unlike QFont::pointSize(), which returns -1 when
+	// the platform font is specified in pixels (see the note in menuViewFont).
+	return QFontInfo(qApp->font()).pointSize();
+#endif
+}
+
+}
 
 
 MainWindow *MainWindow::self;
 
 MainWindow::MainWindow(QWidget *parent) :
-	QMainWindow(parent), _applicationlist(), _dockCount(0), _fontSize(DEFAULT_FONT_SIZE),
+	QMainWindow(parent), _applicationlist(), _dockCount(0), _fontSize(defaultFontSize()),
 	_rootWindow(nullptr), _data(), _server()
 {
 	MainWindow::self = this;
@@ -55,7 +74,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	_data.setGroupCategories(settings.value("group_categories", false).toBool());
 	// clamped to the range menuViewFont offers, so a hand-edited value cannot produce an
 	// unusable window
-	_fontSize = qBound(MIN_FONT_SIZE, settings.value("font_size", DEFAULT_FONT_SIZE).toInt(),
+	_fontSize = qBound(MIN_FONT_SIZE, settings.value("font_size", defaultFontSize()).toInt(),
 		MAX_FONT_SIZE);
 
 	_dockManager = new ads::CDockManager(this);
