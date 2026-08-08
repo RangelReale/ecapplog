@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "LogDelegate.h"
 #include "DetailWindow.h"
+#include "FindDialog.h"
 #include "Widgets.h"
 
 #include <QApplication>
@@ -11,6 +12,7 @@
 #include <QMenuBar>
 #include <QAction>
 #include <QActionGroup>
+#include <QKeySequence>
 #include <QInputDialog>
 #include <QDateTime>
 #include <QSettings>
@@ -26,6 +28,8 @@
 #ifdef ECAPPLOG_DEBUG_MENUS
 #include <QRandomGenerator>
 #endif
+
+#include <algorithm>
 
 #define FILTERMENU_FILTERNAME       	"ECL_FILTERNAME"
 #define FILTERMENU_GROUPBY       	    "ECL_FILTERGROUPBY"
@@ -53,6 +57,24 @@ int defaultFontSize()
 #endif
 }
 
+// Binds every key sequence the platform defines for a standard action, not just the first one:
+// Qt lists F3 ahead of Cmd+G for FindNext, so setShortcut() alone would leave a Mac without the
+// shortcut it expects. The menu label shows the first sequence, hence the reordering.
+void setStandardShortcuts(QAction *action, QKeySequence::StandardKey key)
+{
+	QList<QKeySequence> shortcuts = QKeySequence::keyBindings(key);
+#ifdef Q_OS_DARWIN
+	std::stable_partition(shortcuts.begin(), shortcuts.end(), [](const QKeySequence &shortcut) {
+		// Qt::ControlModifier is the Command key here, so this picks the native sequence
+		return shortcut.count() > 0 && (shortcut[0] & Qt::ControlModifier);
+	});
+#endif
+	action->setShortcuts(shortcuts);
+	// Windows can be floated out of the main window into top level windows of their own, where the
+	// default WindowShortcut context would stop the shortcuts from firing.
+	action->setShortcutContext(Qt::ApplicationShortcut);
+}
+
 }
 
 
@@ -60,7 +82,8 @@ MainWindow *MainWindow::self;
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent), _applicationlist(), _dockCount(0), _fontSize(defaultFontSize()),
-	_rootWindow(nullptr), _data(), _server()
+	_rootWindow(nullptr), _data(), _server(), _findText(), _findCaseSensitive(false),
+	_lastLogView(), _findHighlightView(), _findHighlightIndex(), _findHighlightShown(false)
 {
 	MainWindow::self = this;
 	QSettings settings;
@@ -102,12 +125,34 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(&_data, &Data::newFilter, this, &MainWindow::onNewFilter);
 	connect(&_data, &Data::filterChanged, this, &MainWindow::onFilterChanged);
 
+	// The menu actions have no sender to recover a log view from, the way the context menu and
+	// double-click handlers do, so remember the last log view that had the focus. The find dialog
+	// itself never clobbers this: a QLineEdit is not a QListView.
+	connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *now) {
+		if (QListView *view = qobject_cast<QListView*>(now)) _lastLogView = view;
+		// A search result is only highlighted for as long as that view is the one being used, so
+		// moving to another tab, window or dialog takes the highlight back with it. Two cases are
+		// deliberately left alone: the focus leaving the application altogether, and popups such
+		// as the log context menu, whose Copy and Detail entries act on the selected row.
+		if (now && now != _findHighlightView && !(now->window()->windowFlags() & Qt::Popup))
+		{
+			clearFindHighlight();
+		}
+	});
+
 	// menu: EDIT
 	QMenu *editMenu = new QMenu("&Edit", this);
 	editMenu->addAction("&Clear", this, &MainWindow::menuEditClear);
 	editMenu->addSeparator();
 	QAction *editPause = editMenu->addAction("&Pause", this, &MainWindow::menuEditPause);
 	editPause->setCheckable(true);
+	editMenu->addSeparator();
+	setStandardShortcuts(editMenu->addAction("&Find...", this, &MainWindow::menuEditFind),
+		QKeySequence::Find);
+	setStandardShortcuts(editMenu->addAction("Find &next", this, &MainWindow::menuEditFindNext),
+		QKeySequence::FindNext);
+	setStandardShortcuts(editMenu->addAction("Find &previous", this, &MainWindow::menuEditFindPrevious),
+		QKeySequence::FindPrevious);
 
 	menuBar()->addMenu(editMenu);
 
@@ -226,6 +271,175 @@ void MainWindow::menuEditPause()
 	_data.setPaused(!_data.getPaused());
 	qobject_cast<QAction*>(sender())->setChecked(_data.getPaused());
 	refreshWindowTitle();
+}
+
+// The log view a menu-triggered action should act on: the one the user last clicked into, falling
+// back to whatever the root window currently shows if no log view has ever had the focus.
+QListView *MainWindow::currentLogView() const
+{
+	// isVisible() rejects a view whose category or application tab is no longer the selected one
+	if (_lastLogView && _lastLogView->isVisible()) return _lastLogView;
+
+	if (!_rootWindow) return nullptr;
+	QTabWidget *applications = qobject_cast<QTabWidget*>(_rootWindow->widget());
+	if (!applications) return nullptr;
+	QTabWidget *categories = qobject_cast<QTabWidget*>(applications->currentWidget());
+	if (!categories) return nullptr;
+	QWidget *categoryParent = categories->currentWidget();
+	if (!categoryParent) return nullptr;
+
+	return categoryParent->findChild<QListView*>();
+}
+
+// Searches the message text of every row exactly once, starting after (or before, when going
+// backwards) the current one and wrapping around, so a failure means there really is no match.
+bool MainWindow::findInLogView(QListView *logs, bool backwards)
+{
+	if (!logs || _findText.isEmpty()) return false;
+
+	QAbstractItemModel *model = logs->model();
+	if (!model) return false;
+
+	int rows = model->rowCount();
+	if (rows < 1) return false;
+
+	// Logs keep arriving while a search is in progress, pushing every row down (LogModel inserts
+	// at row 0). Both indexes below are persistent, so the anchor follows its own item.
+	QModelIndex current = logs->currentIndex();
+	if (!current.isValid() && _findHighlightView == logs && _findHighlightIndex.isValid()
+		&& _findHighlightIndex.model() == model)
+	{
+		// the previous match here had its highlight taken back, but it is still where to resume from
+		current = _findHighlightIndex;
+	}
+	int start = current.isValid() ? current.row() : (backwards ? rows : -1);
+
+	Qt::CaseSensitivity caseSensitivity = _findCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+	int step = backwards ? -1 : 1;
+
+	for (int offset = 1; offset <= rows; ++offset)
+	{
+		int row = ((start + (offset * step)) % rows + rows) % rows;
+		QModelIndex index = model->index(row, 0);
+		if (index.data(MODELROLE_MESSAGE).toString().contains(_findText, caseSensitivity))
+		{
+			clearFindHighlight();
+			// the focus keeps the highlight from being taken back straight away, and lets the
+			// repeat shortcuts and the arrow keys carry on from the match
+			logs->setFocus();
+			// Deliberately not QAbstractItemView::setCurrentIndex, which asks selectionCommand()
+			// what to do and that reads the modifiers being held right now: the Command in Cmd+G
+			// is Qt::ControlModifier, so it would answer Toggle and pile every match onto the
+			// selection instead of replacing it (Shift+Cmd+G would extend a range).
+			logs->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
+			logs->scrollTo(index, QAbstractItemView::PositionAtCenter);
+			_findHighlightView = logs;
+			_findHighlightIndex = index;
+			_findHighlightShown = true;
+			// watched so that switching away from the tab takes the highlight back too, which
+			// does not always go through the focus change above
+			logs->installEventFilter(this);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Takes back both marks a match leaves behind: the selection, and the current index, which the
+// delegate paints as a pale band of its own and which would otherwise sit there indefinitely.
+// Anything the user has selected or made current since is theirs, and is left alone.
+void MainWindow::clearFindHighlight()
+{
+	if (!_findHighlightShown) return;
+	_findHighlightShown = false;
+
+	QListView *view = _findHighlightView;
+	if (!view) return;
+	view->removeEventFilter(this);
+
+	QItemSelectionModel *selection = view->selectionModel();
+	if (!selection || !_findHighlightIndex.isValid()) return;
+
+	QModelIndex match(_findHighlightIndex);
+
+	QModelIndexList selected = selection->selectedIndexes();
+	if (selected.size() == 1 && selected.first() == match)
+	{
+		selection->clearSelection();
+	}
+
+	if (selection->currentIndex() == match)
+	{
+		selection->clearCurrentIndex();
+	}
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+	// the highlighted view is being tabbed away from, or its category is closing
+	if (event->type() == QEvent::Hide && watched == _findHighlightView)
+	{
+		clearFindHighlight();
+	}
+
+	return QMainWindow::eventFilter(watched, event);
+}
+
+void MainWindow::findAgain(bool backwards)
+{
+	// Nothing to repeat yet, so ask for the text first
+	if (_findText.isEmpty())
+	{
+		menuEditFind();
+		return;
+	}
+
+	QListView *logs = currentLogView();
+	if (!logs)
+	{
+		QMessageBox::information(this, tr("Find"), tr("There is no log view to search."));
+		return;
+	}
+
+	if (!findInLogView(logs, backwards))
+	{
+		QMessageBox::information(this, tr("Find"), tr("\"%1\" not found.").arg(_findText));
+	}
+}
+
+void MainWindow::menuEditFind()
+{
+	// Resolved before the dialog is shown, while the log view is still the focused widget, and held
+	// through a QPointer because the category could be closed while the dialog is up
+	QPointer<QListView> logs = currentLogView();
+	if (!logs)
+	{
+		QMessageBox::information(this, tr("Find"), tr("There is no log view to search."));
+		return;
+	}
+
+	FindDialog dialog(this, _findText, _findCaseSensitive);
+	if (dialog.exec() != QDialog::Accepted) return;
+
+	_findText = dialog.text();
+	_findCaseSensitive = dialog.caseSensitive();
+	if (_findText.isEmpty()) return;
+
+	if (!findInLogView(logs, false))
+	{
+		QMessageBox::information(this, tr("Find"), tr("\"%1\" not found.").arg(_findText));
+	}
+}
+
+void MainWindow::menuEditFindNext()
+{
+	findAgain(false);
+}
+
+void MainWindow::menuEditFindPrevious()
+{
+	findAgain(true);
 }
 
 void MainWindow::menuViewGroupCategories()

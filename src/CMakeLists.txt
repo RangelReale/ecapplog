@@ -3,6 +3,8 @@ set(SRCS
 	MainWindow.cpp
 	DetailWindow.h
 	DetailWindow.cpp
+	FindDialog.h
+	FindDialog.cpp
 	Config.h
 	Config.cpp
 	Server.h

@@ -16,6 +16,8 @@
 #include <QMenu>
 #include <QAction>
 #include <QLabel>
+#include <QPointer>
+#include <QPersistentModelIndex>
 
 #include <string>
 #include <map>
@@ -78,6 +80,9 @@ public Q_SLOTS:
 
 	void menuEditClear();
 	void menuEditPause();
+	void menuEditFind();
+	void menuEditFindNext();
+	void menuEditFindPrevious();
     void menuViewFont();
 	void menuViewGroupCategories();
 	void menuViewNewWindow();
@@ -100,15 +105,33 @@ public Q_SLOTS:
 
 	void logListContextMenu(const QPoint &point);
 	void logListDoubleClicked(const QModelIndex&);
+protected:
+	bool eventFilter(QObject *watched, QEvent *event) override;
 private:
 	QString formatJSON(const QString &json);
 
 	void onCmdLog(const QString& appName, const QJsonObject &jsonData);
 
+	QListView *currentLogView() const;
+	bool findInLogView(QListView *logs, bool backwards);
+	void findAgain(bool backwards);
+	void clearFindHighlight();
+
 	Server _server;
 	Data _data;
 	int _dockCount;
 	int _fontSize;
+
+	// Find state, kept for the session only (unlike font size, it is not worth persisting)
+	QString _findText;
+	bool _findCaseSensitive;
+	// QPointer: log views are destroyed whenever their category is closed or cleared
+	QPointer<QListView> _lastLogView;
+	// The row the last search landed on. Kept even after its highlight is taken back, so a repeated
+	// search carries on from there instead of starting over.
+	QPointer<QListView> _findHighlightView;
+	QPersistentModelIndex _findHighlightIndex;
+	bool _findHighlightShown;
 
 	typedef std::map<QString, std::shared_ptr<Main_Application> > applicationlist_t;
 	applicationlist_t _applicationlist;
