@@ -1,10 +1,17 @@
 #include "LogDelegate.h"
 #include "LogModel.h"
 #include "Config.h"
+#include "Highlight.h"
 
 #include <QPainter>
 #include <QStyle>
 #include <QApplication>
+#include <QFontMetrics>
+
+// Background of a line holding one of the Edit -> Highlight words. It has to stay light: the
+// message text keeps its priority colour (see LogModelItem::calcPriorityColor), and those colours
+// are chosen to read against a light background.
+#define HIGHLIGHT_BG_COLOR	QColor(255, 236, 160)
 
 void LogDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
@@ -36,9 +43,17 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
                               ? QPalette::Normal : QPalette::Disabled;
     if (cg == QPalette::Normal && !(option.state & QStyle::State_Active))
         cg = QPalette::Inactive;
+    QString message = index.data(MODELROLE_MESSAGE).toString();
+
     if (option.state & QStyle::State_Selected) {
         painter->fillRect(rect, option.palette.brush(cg, QPalette::Highlight));
         painter->setPen(option.palette.color(cg, QPalette::HighlightedText));
+    } else if (_highlight && _highlight->matches(message)) {
+        // Only the background changes: the pen keeps the priority colour the view put into
+        // QPalette::Text from the item's ForegroundRole. A selected line is deliberately left to
+        // the branch above, so a selection never reads as a highlight or the other way round.
+        painter->fillRect(rect, HIGHLIGHT_BG_COLOR);
+        painter->setPen(option.palette.color(cg, QPalette::Text));
     } else {
         painter->setPen(option.palette.color(cg, QPalette::Text));
     }
@@ -93,7 +108,76 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
     }
 
     // message
-    painter->drawText(drawRect, Qt::AlignLeft, index.data(MODELROLE_MESSAGE).toString());
+    drawMessage(painter, drawRect, message);
+}
+
+// Draws the message with every highlighted word in bold. Falls back to a single drawText when
+// nothing matches, which is the usual case.
+void LogDelegate::drawMessage(QPainter *painter, const QRect &rect, const QString &message) const
+{
+    QVector<QPair<int, int> > ranges;
+    if (_highlight) ranges = _highlight->matchRanges(message);
+
+    if (ranges.isEmpty())
+    {
+        painter->drawText(rect, Qt::AlignLeft, message);
+        return;
+    }
+
+    QFont plainFont(painter->font());
+    QFont boldFont(plainFont);
+    boldFont.setBold(true);
+
+    int x = rect.left();
+    int at = 0;
+
+    // walks the message as alternating plain and bold runs
+    auto drawRun = [&](const QString &run, bool bold) {
+        if (run.isEmpty()) return;
+        painter->setFont(bold ? boldFont : plainFont);
+        QRect runRect(rect);
+        runRect.setLeft(x);
+        painter->drawText(runRect, Qt::AlignLeft, run);
+        x += QFontMetrics(painter->font()).horizontalAdvance(run);
+    };
+
+    for (const QPair<int, int> &range : ranges)
+    {
+        drawRun(message.mid(at, range.first - at), false);
+        drawRun(message.mid(range.first, range.second), true);
+        at = range.first + range.second;
+        if (x > rect.right()) break;	// the rest is outside the column
+    }
+    drawRun(message.mid(at), false);
+
+    painter->setFont(plainFont);
+}
+
+// The width drawMessage needs, so the horizontal scrollbar accounts for the wider bold runs.
+int LogDelegate::messageWidth(const QFont &font, const QString &message) const
+{
+    QFontMetrics metrics(font);
+
+    QVector<QPair<int, int> > ranges;
+    if (_highlight) ranges = _highlight->matchRanges(message);
+
+    if (ranges.isEmpty()) return metrics.horizontalAdvance(message);
+
+    QFont boldFont(font);
+    boldFont.setBold(true);
+    QFontMetrics boldMetrics(boldFont);
+
+    int width = 0;
+    int at = 0;
+    for (const QPair<int, int> &range : ranges)
+    {
+        width += metrics.horizontalAdvance(message.mid(at, range.first - at));
+        width += boldMetrics.horizontalAdvance(message.mid(range.first, range.second));
+        at = range.first + range.second;
+    }
+    width += metrics.horizontalAdvance(message.mid(at));
+
+    return width;
 }
 
 QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
@@ -109,7 +193,7 @@ QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInde
 
     width += option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXX");
     width += option.fontMetrics.horizontalAdvance(QString("X[%1]X").arg(Priority::PRIO_INFORMATION));
-    width += option.fontMetrics.horizontalAdvance(index.data(MODELROLE_MESSAGE).toString());
+    width += messageWidth(option.font, index.data(MODELROLE_MESSAGE).toString());
 
     if (!altApp.isEmpty())
     {

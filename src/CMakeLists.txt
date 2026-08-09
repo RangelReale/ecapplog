@@ -5,6 +5,8 @@ set(SRCS
 	DetailWindow.cpp
 	FindDialog.h
 	FindDialog.cpp
+	Highlight.h
+	Highlight.cpp
 	Config.h
 	Config.cpp
 	Server.h

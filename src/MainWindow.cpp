@@ -14,6 +14,7 @@
 #include <QActionGroup>
 #include <QKeySequence>
 #include <QInputDialog>
+#include <QLineEdit>
 #include <QDateTime>
 #include <QSettings>
 #include <QVariant>
@@ -83,7 +84,8 @@ MainWindow *MainWindow::self;
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent), _applicationlist(), _dockCount(0), _fontSize(defaultFontSize()),
 	_rootWindow(nullptr), _data(), _server(), _findText(), _findCaseSensitive(false),
-	_lastLogView(), _findHighlightView(), _findHighlightIndex(), _findHighlightShown(false)
+	_lastLogView(), _findHighlightView(), _findHighlightIndex(), _findHighlightShown(false),
+	_highlight(), _highlightMenu(nullptr)
 {
 	MainWindow::self = this;
 	QSettings settings;
@@ -153,6 +155,10 @@ MainWindow::MainWindow(QWidget *parent) :
 		QKeySequence::FindNext);
 	setStandardShortcuts(editMenu->addAction("Find &previous", this, &MainWindow::menuEditFindPrevious),
 		QKeySequence::FindPrevious);
+	editMenu->addSeparator();
+	_highlightMenu = new QMenu("&Highlight", this);
+	editMenu->addMenu(_highlightMenu);
+	refreshHighlightMenu();
 
 	menuBar()->addMenu(editMenu);
 
@@ -440,6 +446,64 @@ void MainWindow::menuEditFindNext()
 void MainWindow::menuEditFindPrevious()
 {
 	findAgain(true);
+}
+
+// Rebuilt from scratch on every change: the word entries sit below the fixed ones, and there are
+// never enough of them for rebuilding to be worth avoiding.
+void MainWindow::refreshHighlightMenu()
+{
+	_highlightMenu->clear();
+
+	_highlightMenu->addAction("&Add...", this, &MainWindow::menuEditHighlightAdd);
+	QAction *clear = _highlightMenu->addAction("&Clear", this, &MainWindow::menuEditHighlightClear);
+	clear->setEnabled(!_highlight.isEmpty());
+
+	if (_highlight.isEmpty()) return;
+
+	_highlightMenu->addSeparator();
+	for (const QString &word : _highlight.words())
+	{
+		// & is a mnemonic marker in menu text, so a word containing one has to be doubled up
+		QString label(word);
+		label.replace("&", "&&");
+		_highlightMenu->addAction(label, this, [this, word] {
+			_highlight.remove(word);
+			refreshHighlightMenu();
+			refreshLogViews();
+		});
+	}
+}
+
+// Highlighting is drawn by the delegates, so a word change is a repaint and nothing more. Every
+// log view is reachable from _applicationlist, including those in floated windows.
+void MainWindow::refreshLogViews()
+{
+	for (auto &entry : _applicationlist)
+	{
+		entry.second->updateLogViews();
+	}
+}
+
+void MainWindow::menuEditHighlightAdd()
+{
+	bool ok;
+	QString word = QInputDialog::getText(this, tr("Add highlight"), tr("Word:"),
+		QLineEdit::Normal, QString(), &ok);
+	if (!ok) return;
+
+	if (!_highlight.add(word)) return;	// blank, or already listed
+
+	refreshHighlightMenu();
+	refreshLogViews();
+}
+
+void MainWindow::menuEditHighlightClear()
+{
+	if (_highlight.isEmpty()) return;
+
+	_highlight.clear();
+	refreshHighlightMenu();
+	refreshLogViews();
 }
 
 void MainWindow::menuViewGroupCategories()
@@ -783,7 +847,7 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	category->logs->setProperty(PROPERTY_APPNAME, appName);	
 	category->logs->setProperty(PROPERTY_CATEGORYNAME, categoryName);	
 
-	category->logs->setItemDelegate(new LogDelegate);
+	category->logs->setItemDelegate(new LogDelegate(&_highlight));
 	category->logs->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	category->logs->setContextMenuPolicy(Qt::CustomContextMenu);
 
@@ -959,6 +1023,18 @@ void Main_Application::applyFont(const QFont &headerFont)
 		// LogDelegate::sizeHint derives row height and column widths entirely from the font
 		// metrics, and the view caches them: without a relayout the text resizes but the rows
 		// keep their old geometry.
+		if (category->logs) category->logs->doItemsLayout();
+	}
+}
+
+void Main_Application::updateLogViews()
+{
+	for (auto &entry : _categorylist)
+	{
+		auto category = entry.second;
+		// doItemsLayout rather than a viewport repaint: highlighted words are drawn bold, so
+		// LogDelegate::sizeHint returns a wider row and the cached geometry has to be redone,
+		// otherwise the horizontal scrollbar stops short of the text.
 		if (category->logs) category->logs->doItemsLayout();
 	}
 }

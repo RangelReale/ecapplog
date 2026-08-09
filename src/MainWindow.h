@@ -8,6 +8,7 @@
 
 #include "Server.h"
 #include "Data.h"
+#include "Highlight.h"
 
 #include "DockManager.h"
 
@@ -49,6 +50,7 @@ public:
 	std::shared_ptr<Main_Category> findCategory(const QString &categoryName);
 	bool removeCategory(const QString &categoryName);
 	void applyFont(const QFont &headerFont);
+	void updateLogViews();
 private:
 	typedef std::map<QString, std::shared_ptr<Main_Category> > categorylist_t;	
 	categorylist_t _categorylist;
@@ -83,6 +85,8 @@ public Q_SLOTS:
 	void menuEditFind();
 	void menuEditFindNext();
 	void menuEditFindPrevious();
+	void menuEditHighlightAdd();
+	void menuEditHighlightClear();
     void menuViewFont();
 	void menuViewGroupCategories();
 	void menuViewNewWindow();
@@ -117,6 +121,9 @@ private:
 	void findAgain(bool backwards);
 	void clearFindHighlight();
 
+	void refreshHighlightMenu();
+	void refreshLogViews();
+
 	Server _server;
 	Data _data;
 	int _dockCount;
@@ -133,6 +140,10 @@ private:
 	QPersistentModelIndex _findHighlightIndex;
 	bool _findHighlightShown;
 
+	// Words marked in every log list. Handed to each LogDelegate by pointer, so it must outlive
+	// the views, and it does: MainWindow owns them all.
+	Highlight _highlight;
+
 	typedef std::map<QString, std::shared_ptr<Main_Application> > applicationlist_t;
 	applicationlist_t _applicationlist;
 
@@ -141,4 +152,5 @@ private:
 	ads::CDockWidget* _rootWindow;
 	QMenu *_viewMenu;
 	QMenu *_filterMenu;
+	QMenu *_highlightMenu;	// rebuilt whenever the word list changes
 };
