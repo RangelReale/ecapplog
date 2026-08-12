@@ -30,7 +30,10 @@ endif()
 
 if (WIN32)
 	set(ICON_FILE resources/ecapplog.ico)
-	SET( SRCS ${SRCS} resources/resources.h )
+	# ecapplog.rc includes "resources.h" relative to its own directory first, so the header only
+	# exists as a template here - the generated copy is picked up via the include directory below.
+	configure_file(resources/resources.h.in ${CMAKE_CURRENT_BINARY_DIR}/resources/resources.h @ONLY)
+	SET( SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/resources/resources.h )
 	SET( EXE_SRCS ${EXE_SRCS} resources/ecapplog.rc )
 endif()
 
@@ -66,6 +69,9 @@ if (ECAPPLOG_BUILD_CONSOLE_EXE)
 		${EXE_SRCS}
 	)
 	target_compile_features(ecapplog_console PRIVATE cxx_std_17)
+	if (WIN32)
+		target_include_directories(ecapplog_console PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/resources)
+	endif()
 	set_target_properties(ecapplog_console PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
 		LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin_console
@@ -86,6 +92,9 @@ add_executable(ecapplog WIN32 MACOSX_BUNDLE
 	${EXE_SRCS}
 )
 target_compile_features(ecapplog PRIVATE cxx_std_17)
+if (WIN32)
+	target_include_directories(ecapplog PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/resources)
+endif()
 set_target_properties(ecapplog PROPERTIES
 	MACOSX_BUNDLE ON
 	MACOSX_RPATH ON
