@@ -205,4 +205,41 @@ if (APPLE)
     add_dependencies(release ecapplog)
 endif()
 
+if (WIN32)
+    # PowerShell 7 if it is installed, otherwise the Windows PowerShell that ships with the OS.
+    find_program(ECAPPLOG_POWERSHELL NAMES pwsh powershell)
+    if (NOT ECAPPLOG_POWERSHELL)
+        message(WARNING "Neither pwsh nor powershell was found; the release targets are unavailable")
+    else()
+        set(_release_win
+            "${ECAPPLOG_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_SOURCE_DIR}/scripts/release-win.ps1"
+            -BuildDir "${CMAKE_BINARY_DIR}"
+            -Version "${PROJECT_VERSION}")
+
+        # "release-check" verifies an already-packaged installer without publishing anything.
+        add_custom_target(release-check
+            COMMAND ${_release_win} -VerifyOnly
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            USES_TERMINAL
+            COMMENT "Verifying the Windows installer payload is complete and correctly versioned"
+            VERBATIM)
+
+        # "release" packages, verifies and uploads to GitHub Releases.
+        # USES_TERMINAL so the script's confirmation prompt is actually visible and answerable.
+        add_custom_target(release
+            COMMAND "${CMAKE_CPACK_COMMAND}"
+                    -C $<CONFIG>
+                    --config "${CMAKE_BINARY_DIR}/CPackConfig.cmake"
+                    -B "${CMAKE_BINARY_DIR}"
+            COMMAND ${_release_win}
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            USES_TERMINAL
+            COMMENT "Packaging and publishing the Windows release"
+            VERBATIM)
+        # Depend on the app rather than shelling out to a nested build of this same tree.
+        add_dependencies(release ecapplog)
+    endif()
+endif()
+
 endif()
