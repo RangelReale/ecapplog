@@ -76,6 +76,14 @@ void setStandardShortcuts(QAction *action, QKeySequence::StandardKey key)
 	action->setShortcutContext(Qt::ApplicationShortcut);
 }
 
+// Same application wide context as setStandardShortcuts, for the actions Qt has no standard key
+// for. Ctrl is the Command key on macOS, so one sequence covers every platform.
+void setShortcut(QAction *action, const QKeySequence &sequence)
+{
+	action->setShortcut(sequence);
+	action->setShortcutContext(Qt::ApplicationShortcut);
+}
+
 }
 
 
@@ -155,18 +163,19 @@ MainWindow::MainWindow(QWidget *parent) :
 		QKeySequence::FindNext);
 	setStandardShortcuts(editMenu->addAction("Find &previous", this, &MainWindow::menuEditFindPrevious),
 		QKeySequence::FindPrevious);
-	editMenu->addSeparator();
-	_highlightMenu = new QMenu("&Highlight", this);
-	editMenu->addMenu(_highlightMenu);
-	refreshHighlightMenu();
 
 	menuBar()->addMenu(editMenu);
 
 	// menu: VIEW
-	_viewMenu = new QMenu("&View", this);	
+	_viewMenu = new QMenu("&View", this);
 	QAction *viewGroupCategories = _viewMenu->addAction("&Group categories", this, &MainWindow::menuViewGroupCategories);
 	viewGroupCategories->setCheckable(true);
 	viewGroupCategories->setChecked(_data.getGroupCategories());
+	// Above the separator: createWindow appends the dock toggles after it, and they are meant to
+	// stay a group of their own.
+	_highlightMenu = new QMenu("&Highlight", this);
+	_viewMenu->addMenu(_highlightMenu);
+	refreshHighlightMenu();
 	_viewMenu->addSeparator();
 	_viewMenu->addAction("&New window", this, &MainWindow::menuViewNewWindow);
     _viewMenu->addAction("&Font size", this, &MainWindow::menuViewFont);
@@ -454,8 +463,11 @@ void MainWindow::refreshHighlightMenu()
 {
 	_highlightMenu->clear();
 
-	_highlightMenu->addAction("&Add...", this, &MainWindow::menuEditHighlightAdd);
-	QAction *clear = _highlightMenu->addAction("&Clear", this, &MainWindow::menuEditHighlightClear);
+	// The shortcut is set here rather than once at construction because this menu is rebuilt from
+	// scratch, so the action carrying it is a new one every time.
+	setShortcut(_highlightMenu->addAction("&Add...", this, &MainWindow::menuViewHighlightAdd),
+		QKeySequence("Ctrl+K"));
+	QAction *clear = _highlightMenu->addAction("&Clear", this, &MainWindow::menuViewHighlightClear);
 	clear->setEnabled(!_highlight.isEmpty());
 
 	if (_highlight.isEmpty()) return;
@@ -484,7 +496,7 @@ void MainWindow::refreshLogViews()
 	}
 }
 
-void MainWindow::menuEditHighlightAdd()
+void MainWindow::menuViewHighlightAdd()
 {
 	bool ok;
 	QString word = QInputDialog::getText(this, tr("Add highlight"), tr("Word:"),
@@ -497,7 +509,7 @@ void MainWindow::menuEditHighlightAdd()
 	refreshLogViews();
 }
 
-void MainWindow::menuEditHighlightClear()
+void MainWindow::menuViewHighlightClear()
 {
 	if (_highlight.isEmpty()) return;
 

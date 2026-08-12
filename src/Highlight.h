@@ -11,7 +11,7 @@
 #include <QVector>
 #include <QPair>
 
-// The words Edit -> Highlight marks in every log list. Matching is case insensitive, and runs
+// The words View -> Highlight marks in every log list. Matching is case insensitive, and runs
 // against the message body alone, which is the same text Find searches.
 class Highlight
 {

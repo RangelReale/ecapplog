@@ -85,11 +85,11 @@ public Q_SLOTS:
 	void menuEditFind();
 	void menuEditFindNext();
 	void menuEditFindPrevious();
-	void menuEditHighlightAdd();
-	void menuEditHighlightClear();
     void menuViewFont();
 	void menuViewGroupCategories();
 	void menuViewNewWindow();
+	void menuViewHighlightAdd();
+	void menuViewHighlightClear();
 	void menuFilterNew();
 	void menuFilterClear();
 	void menuFilterGroupBy();
