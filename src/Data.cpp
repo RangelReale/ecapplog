@@ -61,7 +61,6 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
     QDateTime logTime(time);
     if (logTime.isNull()) logTime = QDateTime::currentDateTime();
 
-    QString logCategory(categoryName);
     QString altCategory;
     QString categoryNameComplete(categoryName);
     if (!originalCategory.isEmpty()) {
@@ -77,28 +76,41 @@ void Data::log(const QString &appName, const QDateTime &time, const QString &cat
             groupCategories = findapp->second->groupCategories();
         }
     }
-    if (groupCategories) 
-    {
-        altCategory = categoryNameComplete;
-        logCategory = "ALL";
-    }
 
-    internalLog(appName, logTime, logCategory, priority, message, source, "", altCategory, false, logOptions);
-    logFilter(appName, logTime, logCategory, priority, message, source, logOptions);
+    // Several rules can name the same category for one entry - a client logging straight to ALL
+    // while grouping is on, an extra category repeating the one the entry was sent to - and the
+    // tab must not show the line twice, so each category takes it at most once.
+    QStringList logged;
+    auto logTo = [&](const QString &category, const QString &alt, bool isExtraCategory) {
+        if (logged.contains(category)) return false;
+        logged.append(category);
+        internalLog(appName, logTime, category, priority, message, source, "", alt, isExtraCategory, logOptions);
+        return true;
+    };
+
+    // The category the entry was sent to always receives it, whether or not categories are being
+    // grouped: ALL is an additional view of the same line, not somewhere to divert it to. Filters
+    // see this category and the extra ones, and not the ALL and ERROR copies, so a line still
+    // reaches a filter tab once.
+    logTo(categoryName, altCategory, false);
+    logFilter(appName, logTime, categoryName, priority, message, source, logOptions);
+    if (groupCategories)
+    {
+        // The complete category name goes along as the alt category, which is what tells the reader
+        // of the merged list where each line came from
+        logTo(Category::CAT_ALL, categoryNameComplete, false);
+    }
     if (Priority::isErrorOrWarning(priority))
     {
-        internalLog(appName, logTime, "ERROR", priority, message, source, "", categoryNameComplete, false, logOptions);
+        logTo(Category::CAT_ERROR, categoryNameComplete, false);
     }
 
-    if (!extraCategories.isEmpty())
+    // No need to compare against categoryName here: it has already been logged, so logTo answers
+    // false for an extra category repeating it, and for one naming ALL or ERROR
+    for ( const auto& extraCategory : extraCategories  )
     {
-        for ( const auto& extraCategory : extraCategories  )
-        {
-            if (extraCategory != logCategory) {
-                internalLog(appName, logTime, extraCategory, priority, message, source, "", categoryNameComplete, true, logOptions);
-                logFilter(appName, logTime, extraCategory, priority, message, source, logOptions);
-            }
-        }
+        if (!logTo(extraCategory, categoryNameComplete, true)) continue;
+        logFilter(appName, logTime, extraCategory, priority, message, source, logOptions);
     }
 }
 

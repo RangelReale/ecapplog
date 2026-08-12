@@ -25,6 +25,17 @@ public:
 	static bool isErrorOrWarning(const QString &p);
 };
 
+// The two categories the application creates by itself, rather than taking from a log entry: ALL
+// aggregates every category of an application when View -> Group categories is on, and ERROR
+// collects the error and warning lines of all of them. Named because the routing in Data and the
+// tab ordering in MainWindow have to agree on them exactly.
+class Category
+{
+public:
+	static const QString CAT_ALL;
+	static const QString CAT_ERROR;
+};
+
 enum Command
 {
 	CMD_BANNER		= 99,

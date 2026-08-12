@@ -84,6 +84,18 @@ void setShortcut(QAction *action, const QKeySequence &sequence)
 	action->setShortcutContext(Qt::ApplicationShortcut);
 }
 
+// Where a category tab belongs, lowest first. ALL and ERROR are the two views onto the whole
+// application, so they lead, and they are pinned rather than left to arrive in a useful order:
+// ALL comes into being only once categories are being grouped, and ERROR with the first error or
+// warning, which can be at any point. The remaining all-uppercase categories keep the precedence
+// over mixed case ones that they have always had.
+int categoryRank(const QString &categoryName)
+{
+	if (categoryName == Category::CAT_ALL) return 0;
+	if (categoryName == Category::CAT_ERROR) return 1;
+	return categoryName.isUpper() ? 2 : 3;
+}
+
 }
 
 
@@ -899,13 +911,20 @@ void MainWindow::onNewCategory(const QString &appName, const QString &categoryNa
 	layout->addSpacing(6);
 	layout->addWidget(category->logs);
 
-	int idx;
-	if (categoryName.isUpper()) {
-		// put all-uppercase categories in front
-		idx = app->categories->insertTab(0, categoryParent, categoryName);
-	} else {
-		idx = app->categories->addTab(categoryParent, categoryName);
+	// Inserted ahead of the first tab that ranks after this one, so the category joins its own group
+	// without displacing what is already there. Reading the rank back from the tab text keeps this
+	// working after the tabs have been reordered by hand.
+	const int rank = categoryRank(categoryName);
+	int idx = app->categories->count();
+	for (int i = 0; i < idx; ++i)
+	{
+		if (categoryRank(app->categories->tabText(i)) > rank)
+		{
+			idx = i;
+			break;
+		}
 	}
+	idx = app->categories->insertTab(idx, categoryParent, categoryName);
 	category->logsamount->setStyleSheet("QLabel{border-radius: 25px; background: red; color: white;}");
 	category->logsamount->setAlignment(Qt::AlignCenter);
 	app->categories->tabBar()->setTabButton(idx, QTabBar::RightSide, category->logsamount);

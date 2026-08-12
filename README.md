@@ -17,6 +17,8 @@ The released Mac package is signed, notarized, and built for Apple Silicon, and 
 
 The interface is based on `applications` containing `categories`. One tab will be created for each connected application, and inside these, one tab will created for each category.
 
+Two category tabs are created by the application itself, and always come first: `ALL`, when `View -> Group categories` is enabled, which shows every category of the application in a single list, and `ERROR`, which collects its error and warning logs. Both show the category each line came from beside the message. Grouping is an addition, so the category tabs go on receiving their own logs while it is enabled.
+
 Multiple windows can be created, and docked inside the main window or float outside it.
 
 Tabs (application and/or category) can be added to a filter, and shown together in a special `FILTER` application, grouped in single or multiple tabs.
@@ -76,7 +78,7 @@ This must be the first command sent after the connection is established. It sets
 
  * Time must ALWAYS be UTC with milliseconds, using this format: `yyyy-MM-ddThh:mm:ss.zzz`
  * Priority must be one of: `TRACE`, `DEBUG`, `INFORMATION`, `NOTICE`, `WARNING`, `FATAL`, `CRITICAL`, `ERROR`
- * If category is blank, it will be added to the `ALL` category
+ * If category is blank, it will be added to the `<unknown>` category
 
  Optional fields:
 
