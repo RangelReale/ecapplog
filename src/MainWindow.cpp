@@ -838,7 +838,11 @@ void MainWindow::onCmdLog(const QString& appName, const QJsonObject &jsonData)
 
 void MainWindow::onNewApplication(const QString &appName)
 {
-	auto app = std::make_shared<Main_Application>(appName, new TabWidget);
+	TabWidget *categories = new TabWidget;
+	// The category strip is the one that fills up, so it gets the tab counter.
+	categories->enableTabList();
+
+	auto app = std::make_shared<Main_Application>(appName, categories);
 	_applicationlist[app->name] = app;
 
 	app->categories->setProperty(PROPERTY_APPNAME, appName);
