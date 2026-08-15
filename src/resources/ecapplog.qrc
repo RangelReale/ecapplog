@@ -1,5 +1,10 @@
 <!DOCTYPE RCC><RCC version="1.0">
  <qresource prefix="/">
+     <file>ecapplog-16.png</file>
+     <file>ecapplog-32.png</file>
+     <file>ecapplog-48.png</file>
      <file>ecapplog.png</file>
+     <file>ecapplog-128.png</file>
+     <file>ecapplog-256.png</file>
  </qresource>
  </RCC>

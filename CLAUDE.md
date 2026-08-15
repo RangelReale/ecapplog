@@ -41,6 +41,52 @@ TCP client: frames are `<quint8 cmd><quint32 size><payload>` big-endian, startin
 banner (`cmd 99`, payload `ECAPPLOG <appname>`) and then one `cmd 0` frame of log JSON per
 entry (`Server.cpp:105-174`).
 
+### Icons
+
+The source of truth is `scripts/icon/*.svg`; everything in `src/resources/` (`.icns`, `.ico`,
+and the `ecapplog*.png` set) is generated output that happens to be committed, so a Windows or
+Linux build never needs `iconutil` or `rsvg-convert`. After editing an SVG run
+`scripts/generate-icons.sh` and commit what it changes — nothing in the build regenerates them.
+
+There are **two optical sizes**, and this is the part that is easy to undo by accident.
+`ecapplog.svg` carries the LOG wordmark; `ecapplog-small.svg` drops it and keeps only the tile,
+the band and one line either side.
+
+The switch is at **48 device pixels**, set by where the lettering stops resolving: the cap height
+is 145 on a 1024 grid, so LOG renders ~4.5px at 32 (an illegible smudge), ~6.8px at 48 (soft but
+readable) and ~9.1px at 64 (clean). Everything at 32px or below therefore takes the wordless
+master — the 16 and 32 PNGs, the `.ico` 16 and 32, and the `icon_16x16`, `icon_16x16@2x` **and
+`icon_32x32`** iconset entries.
+
+Note that last one: iconset names are *point* sizes, so `icon_32x32` is 32 pixels and gets the
+wordless design, while `icon_32x32@2x` is the same 32 points at twice the density — 64 pixels —
+and has room for the word. Two entries of nominally the same size legitimately show different
+artwork.
+
+The small master's **gaps are load-bearing**: at 16px one device pixel is 64 grid units, so its
+lines sit right out at the edges to leave ~124-unit gaps. Reusing the large master's tighter
+spacing renders as a single green blob. Don't close them up to make that file look better at
+512 — nothing renders it at 512.
+
+The `ecapplog-macos*.svg` files only add Apple's 824-in-1024 inset and drop shadow around the two
+masters, because the Dock expects that margin and the other platforms expect full-bleed.
+
+`QApplication::setWindowIcon(appIcon())` in `main.cpp` is the only place a window icon is set —
+`AppIcon.h` builds a multi-resolution `QIcon` from the resource, and `QWidget::windowIcon()`
+falls back to the application icon, so floated log views and dialogs inherit it.
+
+**That call is `#ifndef Q_OS_DARWIN`, and removing the guard visibly breaks the Dock.** Qt maps
+`setWindowIcon` onto `NSApplication`'s `applicationIconImage`, so on macOS it replaces the
+bundle's `.icns` with the full-bleed resource artwork — which has no 824-in-1024 margin, and
+renders ecapplog noticeably larger than every icon beside it. macOS takes its Dock and Finder
+icon from the bundle and draws no window icon in title bars, so it wants none of this.
+
+When checking an icon change on screen, remember macOS caches aggressively: the Dock will keep
+showing the previous artwork until you `killall Dock`, and sometimes until the
+`com.apple.dock.iconcache` under `/private/var/folders` is deleted as well. A stale Dock icon is
+not evidence that the build is wrong — verify by extracting the `.icns` back out of the bundle
+with `iconutil -c iconset`.
+
 ### Two build-output gotchas
 
 **After changing the version, rebuild before launching.** Reconfiguring regenerates

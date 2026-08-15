@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	macOS wrapper around the full-bleed master.
+
+	Since Big Sur every stock macOS icon is a squircle drawn at 824x824 inside a 1024 canvas, with
+	a soft drop shadow, and Apple relies on that shared margin to make icons line up optically in
+	the Dock. A full-bleed tile would sit visibly larger than everything beside it, so the .icns -
+	and only the .icns - gets this treatment.
+
+	It references ecapplog.svg rather than repeating its geometry, so the artwork is edited in
+	exactly one place. rsvg-convert resolves the href relative to this file's directory, which is
+	why both must stay in scripts/icon/.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="1024" height="1024" viewBox="0 0 1024 1024">
+	<defs>
+		<filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+			<feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.28"/>
+		</filter>
+	</defs>
+	<g filter="url(#shadow)">
+		<image xlink:href="ecapplog.svg" x="100" y="100" width="824" height="824"/>
+	</g>
+</svg>

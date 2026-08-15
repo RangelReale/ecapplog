@@ -1,6 +1,5 @@
 #include "DetailWindow.h"
 
-#include <QIcon>
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QMenu>
@@ -15,7 +14,6 @@ DetailWindow::DetailWindow(QWidget *parent, QString message, QString source) :
 	setAttribute(Qt::WA_DeleteOnClose);
 
 	setWindowTitle("Detail");
-	setWindowIcon(QIcon(":/ecapplog.png"));
 
 	QSplitter* splitter = new QSplitter(this);
 	splitter->setOrientation(Qt::Vertical);

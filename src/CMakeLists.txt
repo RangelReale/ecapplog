@@ -19,6 +19,7 @@ set(SRCS
 	LogModel.cpp
 	LogDelegate.h
 	LogDelegate.cpp
+	AppIcon.h
 	Util.h
 )
 
@@ -117,7 +118,16 @@ endif()
 if(UNIX AND NOT APPLE)
     install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT Main)
 	INSTALL(FILES resources/ecapplog.desktop DESTINATION share/applications CONFIGURATIONS Release COMPONENT Main)
-	INSTALL(FILES resources/ecapplog.png DESTINATION share/icons CONFIGURATIONS Release COMPONENT Main)
+	# The .desktop file says Icon=ecapplog, an unqualified name, which the icon lookup resolves
+	# against the hicolor theme - not the flat share/icons this used to install into, where
+	# nothing ever looked for it. Every size has to land under its own <size>x<size>/apps
+	# directory, and each is installed under the bare name the theme expects.
+	foreach(_iconsize 16 32 48 128 256)
+		INSTALL(FILES resources/ecapplog-${_iconsize}.png
+			DESTINATION share/icons/hicolor/${_iconsize}x${_iconsize}/apps
+			RENAME ecapplog.png CONFIGURATIONS Release COMPONENT Main)
+	endforeach()
+	INSTALL(FILES resources/ecapplog.png DESTINATION share/icons/hicolor/64x64/apps CONFIGURATIONS Release COMPONENT Main)
 elseif(WIN32)
     install(TARGETS ecapplog RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT Main)
 elseif(APPLE)

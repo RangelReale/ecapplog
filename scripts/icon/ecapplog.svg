@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	ECAppLog application icon - full-bleed master, used for 32px and up.
+
+	A page of log lines with one of them highlighted, and the highlight carries the word LOG. That
+	is the same idea as the 2023 icon (a document, marked LOG) drawn as something that fits beside
+	modern app icons, and it keeps the one thing worth keeping from the original: the word is the
+	first thing you see.
+
+	Palette notes, because two of the three colours were arrived at by fixing a specific problem:
+
+	- The tile is pale mint and the band is nearly black-green. On a light tile the band has to
+	  supply all of the contrast, so it is much darker than a mid-tone design would need.
+	- The surrounding lines are #4A7A66, which is darker than it first looks like it should be.
+	  A lighter green sitting on this tile measures barely 1.3:1 and the whole icon reads as
+	  blurry - not soft-focus, just too little separation for the eye to resolve the lines at all.
+	  They still stay clearly lighter than the band, so the band keeps the eye first.
+	- There is no top-edge highlight. A white hairline is invisible on a tile this pale; that
+	  trick only pays off on dark tiles.
+
+	LOG is drawn as geometric paths, not text. A font-family would make the committed .icns depend
+	on which machine last ran generate-icons.sh, and on which version of that font it had; paths
+	render identically everywhere and need no font installed at all. The cost is that the
+	letterforms are hand-fitted, so changing the cap height means recomputing all three - the
+	arithmetic is in the comment on the wordmark group below.
+
+	Full-bleed on purpose: this variant feeds the Windows .ico, the Qt window icon and the Linux
+	hicolor theme, all of which expect artwork that fills its canvas. The macOS .icns needs Apple's
+	824-in-1024 inset plus a drop shadow instead, and generate-icons.sh composes that separately
+	rather than duplicating the geometry here.
+
+	Everything is authored on a 1024 grid. Regenerate assets with scripts/generate-icons.sh.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+	<defs>
+		<linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#EAF6F0"/>
+			<stop offset="1" stop-color="#C2E0D2"/>
+		</linearGradient>
+	</defs>
+
+	<!-- Corner radius is 22.5% of the edge, matching the macOS squircle proportion closely enough
+	     that the inset macOS variant needs no separate rounding. -->
+	<rect x="0" y="0" width="1024" height="1024" rx="230.4" ry="230.4" fill="url(#tile)"/>
+
+	<!-- Surrounding log lines. Ragged widths on purpose - even ones read as a list glyph or a
+	     hamburger menu, and the uneven right edge is what makes the block read as text. Two above
+	     and two below rather than more: the band has to stay the dominant element, and every extra
+	     line steals contrast from it. They sit inside the band's width so the band reads as the
+	     highlighted one among them. -->
+	<g fill="#4A7A66">
+		<rect x="232" y="232" width="430" height="48" rx="24"/>
+		<rect x="232" y="308" width="330" height="48" rx="24"/>
+	</g>
+
+	<!-- The highlighted line. Wider than every other line and centred on the canvas, so it is the
+	     anchor the eye lands on before it resolves any of the detail around it. -->
+	<rect x="160" y="412" width="704" height="200" rx="40" fill="#0E5540"/>
+
+	<!-- LOG, stroked in a single weight so the three letters carry equal colour.
+	     Geometry for cap height C = 145 and stroke w = 35, centred on (512, 512):
+	       ring radius r    = (C - w) / 2                    = 55
+	       letter gap       = 0.85 * w                       = 29.75
+	       advance widths   = 0.62*C (L), C (O), C (G)
+	       total advance    = 439.4, so the run starts at x = 512 - 439.4/2 = 292.3
+	     Stroke extends w/2 past each centreline, which is what makes the drawn extent come out at
+	     292.3..731.7 - symmetric about 512. Recompute all three paths if C or w changes. -->
+	<g fill="none" stroke="#FFFFFF" stroke-width="35" stroke-linecap="butt" stroke-linejoin="miter">
+		<path d="M 309.8 439.5 V 567.0 H 382.2"/>
+		<circle cx="484.5" cy="512.0" r="55.0"/>
+		<!-- G: a ring opened at -32 degrees, swept the long way round, then the crossbar tucked
+		     back into the opening. -->
+		<path d="M 705.8 482.9 A 55.0 55.0 0 1 0 714.2 512.0 H 662.5"/>
+	</g>
+
+	<g fill="#4A7A66">
+		<rect x="232" y="668" width="460" height="48" rx="24"/>
+		<rect x="232" y="744" width="350" height="48" rx="24"/>
+	</g>
+</svg>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	macOS wrapper around the small optical size - see ecapplog-macos.svg for why the inset exists,
+	and ecapplog-small.svg for why a separate small design exists at all.
+
+	Two deliberate departures from the large wrapper, both because this one only ever feeds 16pt
+	(16 and 32 device pixels):
+
+	- No shadow. A blur that reads as depth at 512px covers a third of the glyph at 16px, and all
+	  it produces there is a grey fringe that smears the tile edge into Finder's list-view
+	  background.
+	- A tighter inset, 880 rather than 824. Apple's margin is sized to leave room for the shadow;
+	  with no shadow to accommodate, spending 20% of a 16px canvas on emptiness costs legibility
+	  for nothing. The remaining margin still keeps it from crowding neighbouring rows.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="1024" height="1024" viewBox="0 0 1024 1024">
+	<image xlink:href="ecapplog-small.svg" x="72" y="72" width="880" height="880"/>
+</svg>

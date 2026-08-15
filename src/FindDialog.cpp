@@ -1,6 +1,5 @@
 #include "FindDialog.h"
 
-#include <QIcon>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
@@ -9,7 +8,6 @@ FindDialog::FindDialog(QWidget *parent, const QString &text, bool caseSensitive)
 	QDialog(parent)
 {
 	setWindowTitle("Find");
-	setWindowIcon(QIcon(":/ecapplog.png"));
 
 	_text = new QLineEdit;
 	_text->setText(text);

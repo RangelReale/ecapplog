@@ -113,7 +113,6 @@ MainWindow::MainWindow(QWidget *parent) :
     setGeometry(0, style()->pixelMetric(QStyle::PM_TitleBarHeight), 400, 400);
 
 	refreshWindowTitle();
-	setWindowIcon(QIcon(":/ecapplog"));
 
 	// settings
 	_data.setGroupCategories(settings.value("group_categories", false).toBool());
