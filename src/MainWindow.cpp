@@ -6,7 +6,7 @@
 #include "Widgets.h"
 
 #include <QApplication>
-#include <QStyle>
+#include <QScreen>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMenuBar>
@@ -110,7 +110,18 @@ MainWindow::MainWindow(QWidget *parent) :
 	MainWindow::self = this;
 	QSettings settings;
 
-    setGeometry(0, style()->pixelMetric(QStyle::PM_TitleBarHeight), 400, 400);
+	// A fixed default rather than a fraction of the screen, and deliberately wide: a log row is a
+	// timestamp column, a priority tag and then the message (see LogDelegate::sizeHint), so width is
+	// what stops the horizontal scrollbar being needed from the very first line. Nothing else here
+	// decides the startup size - an explicit geometry bypasses sizeHint entirely, and the docking
+	// system reports a flat 60x40 minimum for its dock widgets whatever they contain.
+	//
+	// boundedTo keeps the window on a panel smaller than the one this was chosen on, and
+	// availableGeometry excludes the menu bar and the Dock, which is why centring here needs none of
+	// the title bar fudge the old top-left placement did.
+	const QRect available = screen()->availableGeometry();
+	resize(QSize(1280, 800).boundedTo(available.size()));
+	move(available.center() - rect().center());
 
 	refreshWindowTitle();
 
