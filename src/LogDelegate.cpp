@@ -13,22 +13,22 @@
 // are chosen to read against a light background.
 #define HIGHLIGHT_BG_COLOR	QColor(255, 236, 160)
 
-// How much of the source field a row shows. A source is usually the entry's whole payload, so it
-// can be multi-line and kilobytes long, and sizeHint's width is what the horizontal scrollbar is
-// sized to - one big source would leave that scrollbar useless for every other row in the view.
-// The whole thing is one double-click away in the detail window's SOURCE tab.
+// How much of the source a row draws. Neither field is bounded at the sending end, and sizeHint's
+// width is what the horizontal scrollbar is sized to - one multi-kilobyte line would leave that
+// scrollbar useless for every other row in the view. Both are whole in the detail window, one
+// double-click away, and DisplayRole still carries the full message, so "Copy to clipboard" is
+// unaffected. The message's own limit is the column below, not a count.
 #define SOURCE_MAX_CHARS	200
 
 // Where the source field starts, counted in characters of the log font from the start of the
-// message. Unlike every other column this one is not a boundary the text is held inside: a message
-// longer than it runs straight on and takes its own source with it, so the column lines up the bulk
-// of the rows without ever hiding message text - which is what a log viewer is for.
+// message, and the boundary the message is held inside - so the source starts at the same x on
+// every row of a view and nothing can ever be drawn across it.
 //
 // It comes in three widths, and each log view takes the narrowest that fits the longest message in
-// its own model. A tab of one-line status messages keeps its source right beside them; a tab of
-// verbose lines spaces out only itself. Beyond the widest, a view stays there rather than growing
-// without limit, because a column further right than the window is no more aligned than no column
-// at all - the long lines just push their own source, as they do at every width.
+// its own model, so a tab of one-line status messages keeps its source right beside them while a
+// tab of verbose lines spaces out only itself. The widest is also the point past which a message is
+// elided: beyond it a view would need a column further right than the window, which is no more
+// readable than no column at all, and a line that long is one you open rather than read in the list.
 #define MESSAGE_COLUMN_NARROW	60
 #define MESSAGE_COLUMN_NORMAL	80
 #define MESSAGE_COLUMN_WIDE		110
@@ -60,16 +60,34 @@ static QString elideSource(const QString &source)
     return oneLine.left(SOURCE_MAX_CHARS) + QChar(0x2026);
 }
 
-// How far past the start of the message the source is drawn, given how wide that message came out.
-// averageCharWidth, not a run of 'X' the way the fixed columns are measured: 'X' is half again wider
-// than a typical character, so a column measured in 'X' would sit well to the right of where that
-// many characters of real text end.
-static int sourceOffset(const QStyleOptionViewItem &option, const QModelIndex &index, int messageWidth)
+// Separation between the message and the source, and the one thing the message's own width is short
+// of the column. Font-relative, like every other measurement in here.
+static int fieldGap(const QStyleOptionViewItem &option)
 {
-    const int column = option.fontMetrics.averageCharWidth() * messageColumnChars(index);
+    return option.fontMetrics.horizontalAdvance("XX");
+}
 
-    // a message that overruns the column still gets a gap, or it would run straight into its source
-    return qMax(column, messageWidth + option.fontMetrics.horizontalAdvance("XX"));
+// Pixels from the start of the message to the start of the source. averageCharWidth, not a run of
+// 'X' the way the fixed columns are measured: 'X' is half again wider than a typical character, so
+// a column measured in 'X' would sit well to the right of where that many characters of real text
+// end.
+static int sourceColumn(const QStyleOptionViewItem &option, const QModelIndex &index)
+{
+    return option.fontMetrics.averageCharWidth() * messageColumnChars(index);
+}
+
+// The message as a row draws it. elidedText against the pixels the column actually has, not a count
+// of characters: how many fit depends on the glyphs, and 110 capitals are half again wider than 110
+// average characters - a count would let a line of them cross into the source.
+//
+// Deliberately not simplified() the way the source is. A run of spaces in a message is usually the
+// sending program lining its own output up in columns, and collapsing those would change how every
+// existing line reads for the sake of the few that are multi-line.
+static QString elideMessage(const QStyleOptionViewItem &option, const QModelIndex &index,
+    const QString &message)
+{
+    return option.fontMetrics.elidedText(message, Qt::ElideRight,
+        sourceColumn(option, index) - fieldGap(option));
 }
 
 void LogDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
@@ -102,22 +120,23 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
                               ? QPalette::Normal : QPalette::Disabled;
     if (cg == QPalette::Normal && !(option.state & QStyle::State_Active))
         cg = QPalette::Inactive;
-    QString message = index.data(MODELROLE_MESSAGE).toString();
+    QString rawMessage = index.data(MODELROLE_MESSAGE).toString();
     QString rawSource = index.data(MODELROLE_SOURCE).toString();
+    QString message = elideMessage(option, index, rawMessage);
     QString source = elideSource(rawSource);
 
     if (option.state & QStyle::State_Selected) {
         painter->fillRect(rect, option.palette.brush(cg, QPalette::Highlight));
         painter->setPen(option.palette.color(cg, QPalette::HighlightedText));
-    } else if (_highlight && (_highlight->matches(message) || _highlight->matches(rawSource))) {
+    } else if (_highlight && (_highlight->matches(rawMessage) || _highlight->matches(rawSource))) {
         // Only the background changes: the pen keeps the priority colour the view put into
         // QPalette::Text from the item's ForegroundRole. A selected line is deliberately left to
         // the branch above, so a selection never reads as a highlight or the other way round.
         //
-        // Matched against the *raw* source rather than the elided one, so the background keeps
-        // meaning "the word is in this entry somewhere" - the same thing it already means for a
-        // message too long to fit the viewport. The bold runs below come from whatever is drawn,
-        // so they always sit under the glyphs they belong to.
+        // Matched against the raw text of both fields rather than the elided ones, so the
+        // background keeps meaning "the word is in this entry somewhere" - the same thing it
+        // already means for a message too long to fit the viewport. The bold runs below come from
+        // whatever is drawn, so they always sit under the glyphs they belong to.
         painter->fillRect(rect, HIGHLIGHT_BG_COLOR);
         painter->setPen(option.palette.color(cg, QPalette::Text));
     } else {
@@ -173,14 +192,18 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
         drawRect.adjust(pixelsCat, 0, 0, 0);
     }
 
-    // message
-    drawHighlighted(painter, drawRect, message);
+    // message, now a column of its own like the fields above it. elideMessage already fits the text
+    // inside, so the narrowed rect is only there for the one thing it could not measure: a bold
+    // highlight run, which elidedText sized with the plain font. Clipping that is the right way to
+    // lose - a word cut short beats every source in the view shifting right for one row.
+    const int column = sourceColumn(option, index);
+    QRect rectMessage = drawRect.adjusted(0, 0, (column - fieldGap(option)) - drawRect.width(), 0);
+    drawHighlighted(painter, rectMessage, message);
+    drawRect.adjust(column, 0, 0, 0);
 
     // source
     if (!source.isEmpty())
     {
-        // option.font, not painter->font(), because that is the font sizeHint measures with
-        drawRect.adjust(sourceOffset(option, index, highlightedWidth(option.font, message)), 0, 0, 0);
         drawHighlighted(painter, drawRect, source);
     }
 }
@@ -267,14 +290,22 @@ QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInde
 
     width += option.fontMetrics.horizontalAdvance("XXXXXXXXXXXXXXXXXXXXX");
     width += option.fontMetrics.horizontalAdvance(QString("X[%1]X").arg(Priority::PRIO_INFORMATION));
-    // The same offset and the same elided text customDrawDisplay draws, or the scrollbar stops short
-    // of the source. A row with no source contributes only its message: the column is where a source
-    // is *drawn*, not width every row is padded out to.
-    const int messageWidth = highlightedWidth(option.font, index.data(MODELROLE_MESSAGE).toString());
+    // The same column and the same elided text customDrawDisplay draws, or the scrollbar stops short
+    // of the source. A row with no source is measured on its message alone: the column is where a
+    // source is *drawn*, not width every row is padded out to. qMin because customDrawDisplay clips
+    // the message to the column, so pixels past it are never on screen to be scrolled to.
     const QString source = elideSource(index.data(MODELROLE_SOURCE).toString());
+    const int column = sourceColumn(option, index);
 
-    width += source.isEmpty() ? messageWidth
-        : sourceOffset(option, index, messageWidth) + highlightedWidth(option.font, source);
+    if (source.isEmpty())
+    {
+        width += qMin(column - fieldGap(option), highlightedWidth(option.font,
+            elideMessage(option, index, index.data(MODELROLE_MESSAGE).toString())));
+    }
+    else
+    {
+        width += column + highlightedWidth(option.font, source);
+    }
 
     if (!altApp.isEmpty())
     {
