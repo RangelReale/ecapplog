@@ -56,7 +56,19 @@ Set-StrictMode -Version Latest
 
 # Fail instead of blocking on a credential dialog nobody is watching.
 $env:GIT_TERMINAL_PROMPT = '0'
-if (-not $env:GIT_SSH_COMMAND) { $env:GIT_SSH_COMMAND = 'ssh -o BatchMode=yes' }
+
+# Only when git has no ssh preference of its own, and GIT_SSH counts as one: GIT_SSH_COMMAND
+# overrides it, so setting this unconditionally drags git off a transport that works. On a machine
+# that reaches GitHub through PuTTY - GIT_SSH=plink.exe, host key cached in the PuTTY registry, key
+# held by Pageant - C:\Windows\System32\OpenSSH\ssh.exe has no known_hosts entry for github.com, and
+# BatchMode turns that into "Host key verification failed". The reachability probe below then
+# rejects an origin git can reach perfectly well, and the release stops before it starts.
+#
+# Leaving an existing transport alone does not give up the no-hang guarantee: if it would block, it
+# blocks on that probe, which is still ahead of any tag, release or upload.
+if (-not $env:GIT_SSH_COMMAND -and -not $env:GIT_SSH) {
+    $env:GIT_SSH_COMMAND = 'ssh -o BatchMode=yes'
+}
 
 function Die    { param([string] $Message) Write-Host "error: $Message" -ForegroundColor Red; exit 1 }
 function Info   { param([string] $Message) Write-Host "==> $Message" -ForegroundColor Cyan }
