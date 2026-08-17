@@ -1,27 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-	ECAppLog application icon - small optical size, used for the 16px entries only.
+	ECAppLog application icon - small optical size, used from 24 up to 48 device pixels.
 
-	The master does not survive 16px. Its log lines land on about half a device pixel each, and
-	the LOG lettering - a 145-unit cap height on a 1024 grid - comes out barely two pixels tall,
-	which is not small text, it is a smudge. Shrinking the master here would trade a legible mark
-	for a green blur.
+	This file exists because of a real bug report: on Windows the icon read as different artwork
+	from the macOS one. Nothing was stale - the .ico and the .icns agreed at every size they
+	shared. The two platforms simply ask for different sizes. macOS shows you the Dock at 128px and
+	up, which carries the wordmark; Windows shows you the taskbar and the title bar at 16-32px,
+	which did not. The old small design solved illegibility by deleting the subject, so on Windows
+	the word was absent essentially everywhere the user actually looks.
 
-	So this variant drops the word entirely and keeps the silhouette: the tile, one heavy line
-	above and below, and the highlighted band across the middle. Same palette, same reading - a
-	highlighted line in a page of lines - and at 16px what survives is a dark bar on a pale tile,
-	which is distinct enough to pick out of a Finder list at a glance.
+	The fix is the standard one for an optical size: simplify by *enlarging*, not by removing.
+	Everything but the word goes, and the word grows until it is legible at the sizes that need it.
+	The four surrounding log lines are dropped entirely - at 24px they are a device pixel each and
+	only steal contrast from the band - and the band widens to a full stripe so LOG can nearly span
+	the tile.
 
-	**The gaps are the whole design here, not the bars.** At 16px one device pixel is 64 units of
-	this grid, so a gap has to be over 100 units before it survives as anything at all. A first
-	attempt reusing the master's spacing (60 units, under a pixel) rendered as a single green blob
-	with no internal structure. The lines are therefore pushed right out to y=196 and y=732,
-	leaving 124-unit gaps either side of the band - about 1.9 pixels - which is what makes three
-	separate elements read as three. Do not close these up to make it look better at 512; nothing
-	renders this file at 512.
+	Cap height is 280 against the full master's 145, which is what buys the legibility:
 
-	Authored on the same 1024 grid as ecapplog.svg so the two can be compared side by side. Keep
-	the palette in step with it.
+	                  cap px   stroke px
+	    24px           6.56       1.57      <- as legible as the full master is at 48
+	    32px           8.75       2.09
+	    48px          13.12       3.14
+
+	The 24px floor is set by comparison, not by taste: 6.56/1.57 there is within a rounding error
+	of the 6.80/1.64 the full master produces at 48px, which ecapplog.svg's own notes call soft but
+	readable. Below 24 even this cap collapses (5.47 at 20, 4.38 at 16), which is why
+	ecapplog-tiny.svg still exists and still has no word.
+
+	The *upper* bound is the less obvious half. Handing 48px to the full master - as the .ico did
+	before this file existed - drops the cap from 13.12 to 6.80, so the word would get harder to
+	read as the icon got bigger. So the full master now starts at 64px, where its cap reaches 9.06
+	and its own notes call it clean. That also lines the two platforms up exactly: 64px is where the
+	.icns switches too, because icon_32x32@2x is its first 64px slot.
+
+	Geometry follows ecapplog.svg's formula verbatim, with C = 280 and w = 67 (the same 0.24 stroke
+	ratio, so the three letters carry equal colour at any size):
+	  ring radius r    = (C - w) / 2                    = 106.5
+	  letter gap       = 0.85 * w                       = 56.95
+	  advance widths   = 0.62*C (L), C (O), C (G)
+	  total advance    = 847.5, so the run starts at x = 512 - 847.5/2 = 88.25
+	Stroke extends w/2 past each centreline, putting the drawn extent at 88.25..935.75 - symmetric
+	about 512. Recompute all three paths if C or w changes.
+
+	Authored on the same 1024 grid as ecapplog.svg. Keep the palette in step with it.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
 	<defs>
@@ -33,12 +54,23 @@
 
 	<rect x="0" y="0" width="1024" height="1024" rx="230.4" ry="230.4" fill="url(#tile)"/>
 
-	<!-- Lines at 96 tall against the master's 48, and only one either side instead of two. -->
-	<rect x="196" y="196" width="520" height="96" rx="48" fill="#4A7A66"/>
+	<!-- The band is a wide stripe rather than the master's inset line, because it has to clear a
+	     wordmark that now spans 88.25..935.75 and 372..652. That leaves it 36 units of side padding
+	     and 50 of vertical - both under a device pixel at 24px, so they read as nothing there and
+	     the band simply looks fitted to the letters.
 
-	<!-- The band reaches wider than in the master and is the only element carrying the identity at
-	     this size, so it stays the heaviest thing on the tile. -->
-	<rect x="128" y="416" width="768" height="192" rx="48" fill="#0E5540"/>
+	     Sized deliberately tight rather than run out to the tile edge. The identity of the large
+	     master is a dark band on a pale tile, and a band much bigger than this one inverts that:
+	     the mint stops being the ground and the icon reads as a dark tile instead, which is a
+	     different mark at a glance even with the same palette. 920x380 keeps mint the majority. -->
+	<rect x="52" y="322" width="920" height="380" rx="86" fill="#0E5540"/>
 
-	<rect x="196" y="732" width="430" height="96" rx="48" fill="#4A7A66"/>
+	<!-- LOG at C = 280, w = 67; see the arithmetic in the header comment. -->
+	<g fill="none" stroke="#FFFFFF" stroke-width="67" stroke-linecap="butt" stroke-linejoin="miter">
+		<path d="M 121.75 372.0 V 618.5 H 261.85"/>
+		<circle cx="458.8" cy="512.0" r="106.5"/>
+		<!-- G: a ring opened at -32 degrees, swept the long way round, then the crossbar tucked
+		     back into the opening - the same construction as the master, scaled by r. -->
+		<path d="M 886.07 455.56 A 106.5 106.5 0 1 0 902.25 512.0 H 802.14"/>
+	</g>
 </svg>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	macOS wrapper around the tiny optical size - feeds icon_16x16.png and nothing else.
+
+	See ecapplog-macos.svg for why the inset exists at all, ecapplog-tiny.svg for why a wordless
+	design exists, and ecapplog-macos-small.svg for the two departures from the large wrapper (no
+	shadow, and the tighter 880 inset) - this file makes exactly the same two, for exactly the same
+	reasons, and differs from it only in which master it points at.
+
+	It is a separate file rather than a parameter because rsvg-convert has no way to substitute the
+	xlink:href at render time, and the alternative - one wrapper whose source depends on the output
+	size - is not expressible in SVG.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="1024" height="1024" viewBox="0 0 1024 1024">
+	<image xlink:href="ecapplog-tiny.svg" x="72" y="72" width="880" height="880"/>
+</svg>

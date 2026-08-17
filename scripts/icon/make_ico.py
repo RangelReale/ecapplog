@@ -9,8 +9,19 @@ mean decoding the PNGs back to raw RGBA first, which needs a dependency this pro
 otherwise have (there is no Pillow on the build machine, and pulling in ImageMagick just for the
 Windows icon is not worth it for a project that only ships macOS releases).
 
-If pre-Vista support ever matters, replace the call in generate-icons.sh with
-`magick in16.png ... out.ico`, which writes DIBs below 256 the old way.
+One thing to know before trusting that, because it is genuinely untested here: the .ico this
+project shipped for three years - everything up to 8fe699e~1 - was DIB below 256 with PNG only at
+256, which is the universal convention. The all-PNG layout arrived with the icon rework, and since
+releases are macOS-only there is no evidence in the history that makensis has ever compiled it.
+CPACK_NSIS_MUI_ICON points at this file, and makensis patches the installer stub with its own
+resource editor rather than through the Windows icon APIs - that editor is the historically fussy
+consumer. So if the *installer* icon is ever wrong while Explorer is right, suspect this before
+anything in the SVGs.
+
+The remedy would need no new dependency either, despite what the paragraph above implies: zlib is
+stdlib, un-filtering PNG scanlines is about forty lines, and emitting a BITMAPINFOHEADER with
+doubled height, bottom-up BGRA and a 1-bit AND mask is another twenty. Don't write it
+speculatively, but don't reach for `magick` if it turns out to be needed.
 """
 
 import struct

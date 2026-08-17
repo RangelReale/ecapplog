@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	ECAppLog application icon - tiny optical size, used below 24 device pixels (the 16 and 20px
+	entries).
+
+	This is the one size where the word genuinely cannot be kept. ecapplog-small.svg carries LOG at
+	a 280-unit cap height and still only reaches 4.4 device pixels here; the full master's 145-unit
+	cap reaches 2.3. Neither is small text, both are a smudge, and the surrounding log lines land
+	on about half a device pixel each. There is no cap height that fits three legible letters into
+	16 pixels, so this variant is the only one that drops the word rather than enlarging it.
+
+	It keeps the silhouette instead: the tile, one heavy line above and below, and the highlighted
+	band across the middle. Same palette, same reading - a highlighted line in a page of lines -
+	and at 16px what survives is a dark bar on a pale tile, which is distinct enough to pick out of
+	a Finder list at a glance.
+
+	**The gaps are the whole design here, not the bars.** At 16px one device pixel is 64 units of
+	this grid, so a gap has to be over 100 units before it survives as anything at all. A first
+	attempt reusing the master's spacing (60 units, under a pixel) rendered as a single green blob
+	with no internal structure. The lines are therefore pushed right out to y=196 and y=732,
+	leaving 124-unit gaps either side of the band - about 1.9 pixels - which is what makes three
+	separate elements read as three. Do not close these up to make it look better at 512; nothing
+	renders this file at 512.
+
+	Authored on the same 1024 grid as ecapplog.svg so the three masters can be compared side by
+	side. Keep the palette in step with them.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+	<defs>
+		<linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#EAF6F0"/>
+			<stop offset="1" stop-color="#C2E0D2"/>
+		</linearGradient>
+	</defs>
+
+	<rect x="0" y="0" width="1024" height="1024" rx="230.4" ry="230.4" fill="url(#tile)"/>
+
+	<!-- Lines at 96 tall against the master's 48, and only one either side instead of two. -->
+	<rect x="196" y="196" width="520" height="96" rx="48" fill="#4A7A66"/>
+
+	<!-- The band reaches wider than in the master and is the only element carrying the identity at
+	     this size, so it stays the heaviest thing on the tile. -->
+	<rect x="128" y="416" width="768" height="192" rx="48" fill="#0E5540"/>
+
+	<rect x="196" y="732" width="430" height="96" rx="48" fill="#4A7A66"/>
+</svg>

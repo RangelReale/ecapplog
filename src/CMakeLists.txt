@@ -126,7 +126,11 @@ if(UNIX AND NOT APPLE)
 	# against the hicolor theme - not the flat share/icons this used to install into, where
 	# nothing ever looked for it. Every size has to land under its own <size>x<size>/apps
 	# directory, and each is installed under the bare name the theme expects.
-	foreach(_iconsize 16 32 48 128 256)
+	# 24 is a size hicolor's index.theme declares and panels do ask for, so it is installed. The
+	# other sizes generate-icons.sh produces for the Windows .ico - 20, 40, 96 - are deliberately
+	# absent: 20 and 40 are not theme sizes, so a hicolor/40x40/apps directory is never searched
+	# and installing there would be dead weight that looks like coverage.
+	foreach(_iconsize 16 24 32 48 128 256)
 		INSTALL(FILES resources/ecapplog-${_iconsize}.png
 			DESTINATION share/icons/hicolor/${_iconsize}x${_iconsize}/apps
 			RENAME ecapplog.png CONFIGURATIONS Release COMPONENT Main)

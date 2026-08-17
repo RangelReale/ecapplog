@@ -48,28 +48,70 @@ and the `ecapplog*.png` set) is generated output that happens to be committed, s
 Linux build never needs `iconutil` or `rsvg-convert`. After editing an SVG run
 `scripts/generate-icons.sh` and commit what it changes — nothing in the build regenerates them.
 
-There are **two optical sizes**, and this is the part that is easy to undo by accident.
-`ecapplog.svg` carries the LOG wordmark; `ecapplog-small.svg` drops it and keeps only the tile,
-the band and one line either side.
+There are **three optical sizes**, and this is the part that is easy to undo by accident:
 
-The switch is at **48 device pixels**, set by where the lettering stops resolving: the cap height
-is 145 on a 1024 grid, so LOG renders ~4.5px at 32 (an illegible smudge), ~6.8px at 48 (soft but
-readable) and ~9.1px at 64 (clean). Everything at 32px or below therefore takes the wordless
-master — the 16 and 32 PNGs, the `.ico` 16 and 32, and the `icon_16x16`, `icon_16x16@2x` **and
-`icon_32x32`** iconset entries.
+| master | used at | drawing |
+| --- | --- | --- |
+| `ecapplog-tiny.svg` | below 24px | tile, band, one line either side — **no word** |
+| `ecapplog-small.svg` | 24–48px | tile, wide band, LOG at cap height 280 |
+| `ecapplog.svg` | 64px and up | the full design, LOG at cap height 145 |
 
-Note that last one: iconset names are *point* sizes, so `icon_32x32` is 32 pixels and gets the
-wordless design, while `icon_32x32@2x` is the same 32 points at twice the density — 64 pixels —
-and has room for the word. Two entries of nominally the same size legitimately show different
-artwork.
+Both switches are measurements, not round numbers. Cap height over the 1024 grid, in device
+pixels:
 
-The small master's **gaps are load-bearing**: at 16px one device pixel is 64 grid units, so its
+| | 16px | 24px | 32px | 48px | 64px |
+| --- | --- | --- | --- | --- | --- |
+| small (280) | 4.4 | **6.6** | 8.8 | 13.1 | — |
+| full (145) | 2.3 | 3.4 | 4.5 | **6.8** | 9.1 |
+
+The full master is only clean from 64px, and 6.8px at 48 is the floor it establishes for "soft but
+readable". The small master hits that same floor at 24px, which is where the lower switch goes.
+Nothing reaches it at 16px at any cap height, which is why the tiny master exists and is the only
+one without a word.
+
+**The upper switch is 64, not 48** — the counter-intuitive half. Handing 48px to the full master
+takes the cap from 13.1px down to 6.8px, so the word would get *harder* to read as the icon got
+bigger. 64 is also where the `.icns` switches anyway, since `icon_32x32@2x` is its first 64px slot,
+so the two files agree at every size they share.
+
+On iconset names: they are *point* sizes, so read the pixel count off the `@2x`. `icon_32x32` is 32
+pixels and takes the small master, while `icon_32x32@2x` is the same 32 points at twice the density
+— 64 pixels — and takes the full one. Two entries of nominally the same size legitimately show
+different artwork.
+
+The tiny master's **gaps are load-bearing**: at 16px one device pixel is 64 grid units, so its
 lines sit right out at the edges to leave ~124-unit gaps. Reusing the large master's tighter
 spacing renders as a single green blob. Don't close them up to make that file look better at
 512 — nothing renders it at 512.
 
-The `ecapplog-macos*.svg` files only add Apple's 824-in-1024 inset and drop shadow around the two
-masters, because the Dock expects that margin and the other platforms expect full-bleed.
+The small master's **band is deliberately not run out to the tile edge.** The identity of the large
+master is a dark band on a pale tile; a band much bigger than 920x380 inverts that, the mint stops
+being the ground, and the icon reads as a dark tile — a different mark at a glance even with an
+identical palette.
+
+The `ecapplog-macos*.svg` files only add Apple's inset (824-in-1024 with a drop shadow for the full
+master, a tighter 880 and no shadow for the two small ones) around the three masters, because the
+Dock expects that margin and the other platforms expect full-bleed.
+
+**Why the `.ico` carries ten sizes and everything else carries six or ten slots.** Windows asks for
+more sizes than any other platform: 16 and 20 (Explorer list and details views), 24 (taskbar at
+100%), 32 (Alt-Tab, title bar), 40 (32 at 125% scaling), 48 (Explorer medium, desktop at 100%), 64,
+96 (128 at 75%), 128 and 256. A size with no entry is not skipped — Windows invents it by
+downscaling the next entry up. 20, 40 and 96 exist *only* inside the `.ico`, so
+`generate-icons.sh` renders them to a temp dir the way it renders the macOS iconset; they must not
+reach the `.qrc` or the Linux hicolor loop, because 20 and 40 are not sizes `index.theme` declares
+and a `hicolor/40x40/apps` directory is never searched. The six committed PNGs are passed through
+untouched, so their `.ico` frames stay byte-identical to the files on disk — which makes verifying
+the container a hash comparison.
+
+**This is the bug that produced the three-master split.** The icon was reported as "different
+artwork" on Windows while being correct on macOS, and nothing was stale — the `.ico` and the `.icns`
+agreed at every size they shared. The two platforms simply ask for different sizes. macOS shows you
+the Dock at 128px and up, which always carried the wordmark; Windows shows you the taskbar and title
+bar at 16–32px, which never did, because the old small master solved illegibility by deleting the
+subject. The fix was the standard one for an optical size — simplify by *enlarging*, not by
+removing. If you ever find yourself about to drop an element to make a small size legible, enlarge
+it instead and drop its neighbours.
 
 `QApplication::setWindowIcon(appIcon())` in `main.cpp` is the only place a window icon is set —
 `AppIcon.h` builds a multi-resolution `QIcon` from the resource, and `QWidget::windowIcon()`
@@ -86,6 +128,17 @@ showing the previous artwork until you `killall Dock`, and sometimes until the
 `com.apple.dock.iconcache` under `/private/var/folders` is deleted as well. A stale Dock icon is
 not evidence that the build is wrong — verify by extracting the `.icns` back out of the bundle
 with `iconutil -c iconset`.
+
+Windows caches harder and per-path: the shell will keep showing a previously *installed* build's
+icon indefinitely, so a wrong icon on a machine that has ever had an older ECAppLog on it is not
+evidence of anything. Flush with `ie4uinit.exe -show`; if that does not take, kill Explorer, delete
+`%LocalAppData%\IconCache.db` and `%LocalAppData%\Microsoft\Windows\Explorer\iconcache_*.db`, then
+restart it. Installing to a path that has never held ECAppLog sidesteps the whole problem.
+
+Note also **which of the two Windows pipelines** you are looking at. Explorer, the desktop, pinned
+shortcuts and the installer take the `.ico` compiled into the binary via `ecapplog.rc`; the running
+app's title bar and Alt-Tab entry take the `QIcon` from `AppIcon.h` and the `.qrc` PNGs. One looking
+right while the other looks wrong is the useful diagnostic, and it narrows the fix to one of them.
 
 ### Two build-output gotchas
 
