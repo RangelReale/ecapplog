@@ -52,12 +52,32 @@ int matchBalanced(const QString &text, int start)
 	return -1;
 }
 
-// An empty {} or [] is valid JSON, but a tab showing "{}" tells nobody anything and stray
-// empty braces in prose are common enough to matter. QJsonDocument::isEmpty() is no help
-// here - in Qt5 it only repeats isNull() - so the container has to be asked directly.
-bool isEmptyValue(const QJsonDocument &doc)
+// Is this value worth a tab of its own? Valid JSON is not the same question.
+//
+// An empty {} or [] parses fine but a tab showing "{}" tells nobody anything, and stray empty
+// braces in prose are common enough to matter. (QJsonDocument::isEmpty() is no help - in Qt5
+// it only repeats isNull() - so the container has to be asked directly.)
+//
+// Arrays need a stricter test still, because bracketed numbers are everywhere in log output
+// and every one of them is a valid array: `DownloadFileToMemory[11]` would otherwise get a
+// tab containing 11, and so would every index, count and thread id in the stream. An array
+// whose every element is an object is structured data somebody meant to send; anything else
+// is almost always coincidence. A deliberate ["a","b"] is the price, and it can still be read
+// by selecting it and using "Try parsing JSON", which does not go through here.
+bool isTabWorthy(const QJsonDocument &doc)
 {
-	return doc.isArray() ? doc.array().isEmpty() : doc.object().isEmpty();
+	if (doc.isArray()) {
+		const QJsonArray arr = doc.array();
+		if (arr.isEmpty()) return false;
+
+		// at() rather than a range-for: Qt5's iterator hands out QJsonValueRef
+		for (int i = 0; i < arr.size(); i++)
+			if (!arr.at(i).isObject()) return false;
+
+		return true;
+	}
+
+	return !doc.object().isEmpty();
 }
 
 // Pass A: complete JSON values sitting literally in the text. Returns how many characters of
@@ -75,7 +95,7 @@ int scanLiteral(const QString &text, QVector<JsonScan::Match> &out)
 			const int end = matchBalanced(text, i);
 			if (end > i) {
 				const QJsonDocument doc = JsonScan::tryParse(text.mid(i, end - i));
-				if (!doc.isNull() && !isEmptyValue(doc)) {
+				if (!doc.isNull() && isTabWorthy(doc)) {
 					out.append(JsonScan::Match{ doc, QString() });
 					covered += end - i;
 					// resume *after* the value, so nested sub-objects don't each become a
@@ -113,7 +133,7 @@ void scanEmbedded(const QJsonValue &value, const QString &path, QVector<JsonScan
 		const QString str = value.toString().trimmed();
 		if (str.startsWith('{') || str.startsWith('[')) {
 			const QJsonDocument doc = JsonScan::tryParse(str);
-			if (!doc.isNull() && !isEmptyValue(doc)) {
+			if (!doc.isNull() && isTabWorthy(doc)) {
 				out.append(JsonScan::Match{ doc, path });
 				// an unwrapped payload can itself wrap another one; this terminates because
 				// each unwrap works on a strict substring of what it came from
