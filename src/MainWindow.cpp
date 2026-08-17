@@ -365,7 +365,11 @@ bool MainWindow::findInLogView(QListView *logs, bool backwards)
 	{
 		int row = ((start + (offset * step)) % rows + rows) % rows;
 		QModelIndex index = model->index(row, 0);
-		if (index.data(MODELROLE_MESSAGE).toString().contains(_findText, caseSensitivity))
+		// The source is searched too, now that the row shows it. It is searched in full, so a match
+		// can sit past the point the row elides it at - the entry is selected with nothing visibly
+		// matching in it, and the detail window's SOURCE tab is where to read the rest.
+		if (index.data(MODELROLE_MESSAGE).toString().contains(_findText, caseSensitivity)
+			|| index.data(MODELROLE_SOURCE).toString().contains(_findText, caseSensitivity))
 		{
 			clearFindHighlight();
 			// the focus keeps the highlight from being taken back straight away, and lets the

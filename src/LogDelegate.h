@@ -21,8 +21,10 @@ public:
 private:
     void customDrawDisplay(QPainter *painter, const QStyleOptionViewItem &option,
         const QRect &rect, const QModelIndex &index) const;
-    void drawMessage(QPainter *painter, const QRect &rect, const QString &message) const;
-    int messageWidth(const QFont &font, const QString &message) const;
+    // Both take any text, not just the message: the source field is drawn and measured through
+    // them too, so it gets the same bold runs.
+    void drawHighlighted(QPainter *painter, const QRect &rect, const QString &text) const;
+    int highlightedWidth(const QFont &font, const QString &text) const;
 
     const Highlight *_highlight;
 };

@@ -76,6 +76,7 @@ void LogModel::addLog(std::shared_ptr<LogModelItem> item)
 {
     beginInsertRows(QModelIndex(), 0, 0);
     lst.insert(0, item);
+    _maxMessageLength = qMax(_maxMessageLength, item->getMessage().length());
     endInsertRows();
 }
 
@@ -83,6 +84,7 @@ void LogModel::clearLogs()
 {
     beginResetModel();
     lst.clear();
+    _maxMessageLength = 0;
     endResetModel();
 }
 
@@ -100,6 +102,7 @@ void LogModel::addLogs(const std::deque<std::shared_ptr<LogModelItem>>& item_lis
     for (auto item : item_list)
     {
         lst.insert(0, item);
+        _maxMessageLength = qMax(_maxMessageLength, item->getMessage().length());
     }
     endInsertRows();
 }

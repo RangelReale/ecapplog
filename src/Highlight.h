@@ -12,7 +12,7 @@
 #include <QPair>
 
 // The words View -> Highlight marks in every log list. Matching is case insensitive, and runs
-// against the message body alone, which is the same text Find searches.
+// against the message body and the source, which is the same text Find searches.
 class Highlight
 {
 public:

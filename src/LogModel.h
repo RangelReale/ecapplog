@@ -84,6 +84,15 @@ public:
 	void addLogs(const std::deque<std::shared_ptr<LogModelItem>> &item_list);
 	void clearLogs();
 
+	// The longest message this model has held, in characters. LogDelegate picks the column its
+	// source field starts at from this, so a category whose lines are all short keeps its source
+	// close to the message instead of being spaced out for lines that are in some other tab.
+	//
+	// Deliberately not lowered when removeLog trims the oldest entries: recomputing it would mean
+	// walking the whole list on every trim, and a column that narrowed again as old lines aged out
+	// would shift under the reader for no gain. clearLogs is the one thing that resets it.
+	int maxMessageLength() const { return _maxMessageLength; }
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 
     QVariant data(const QModelIndex &index, int role) const;
@@ -94,4 +103,5 @@ public:
 private:
     Q_DISABLE_COPY(LogModel)
     QList<std::shared_ptr<LogModelItem> > lst;
+    int _maxMessageLength = 0;
 };

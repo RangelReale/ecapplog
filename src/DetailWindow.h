@@ -26,7 +26,6 @@ public:
 public Q_SLOTS:
 	//void copyToClipboard();
 	void textEditContextMenu(const QPoint &point);
-	void jsonTabCloseRequested(int index);
 private:
 	QTextEdit *addTab(const QString &label, const QString &content, bool highlight, int index);
 	QTextEdit *addJsonTab(const QString &label, const QJsonDocument &doc);
@@ -36,9 +35,4 @@ private:
 	QSplitter  *_splitter;
 	QTextEdit  *_log;
 	QTabWidget *_jsonTabs;
-
-	// The SOURCE tab, or null when the entry had no source or the tab has been closed. Kept
-	// so that tabs added later - a "Selection" from the context menu - can be slid in ahead
-	// of it and leave SOURCE where it belongs, at the end.
-	QWidget    *_sourceTab = nullptr;
 };
