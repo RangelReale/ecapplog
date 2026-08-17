@@ -9,7 +9,7 @@ if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
 endif()
 
-project(ECAppLog LANGUAGES CXX VERSION 1.2.0)
+project(ECAppLog LANGUAGES CXX VERSION 1.3.0)
 
 #
 # Basic cofiguration
