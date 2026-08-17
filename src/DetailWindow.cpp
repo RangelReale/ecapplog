@@ -12,7 +12,7 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 
-DetailWindow::DetailWindow(QWidget *parent, const QString &text) :
+DetailWindow::DetailWindow(QWidget *parent, const QString &text, const QStringList &sources) :
 	QDialog(parent)
 {
 	setAttribute(Qt::WA_DeleteOnClose);
@@ -42,6 +42,9 @@ DetailWindow::DetailWindow(QWidget *parent, const QString &text) :
 	connect(_jsonTabs, &QTabWidget::tabCloseRequested, this, &DetailWindow::jsonTabCloseRequested);
 	_splitter->addWidget(_jsonTabs);
 
+	// Only the message text is scanned. The source is not appended to it and not searched:
+	// it is almost always the entry's payload, so scanning it too would put the same data on
+	// screen twice, once as a JSON tab and once as SOURCE.
 	int unnamed = 0;
 	const QVector<JsonScan::Match> matches = JsonScan::findAll(text);
 	for (const JsonScan::Match &match : matches)
@@ -50,6 +53,8 @@ DetailWindow::DetailWindow(QWidget *parent, const QString &text) :
 		// label than its position in the line
 		addJsonTab(match.path.isEmpty() ? QString("JSON %1").arg(++unnamed) : match.path, match.doc);
 	}
+
+	addSourceTab(sources);
 
 	// The formatted JSON is what the window is for; the raw text above it only needs enough
 	// room to find your place in.
@@ -100,33 +105,68 @@ void DetailWindow::textEditContextMenu(const QPoint &point)
 void DetailWindow::jsonTabCloseRequested(int index)
 {
 	QWidget *tab = _jsonTabs->widget(index);
+	// or the next insert would be positioned against a tab that no longer exists
+	if (tab == _sourceTab) _sourceTab = nullptr;
+
 	_jsonTabs->removeTab(index);
 	delete tab;
 
 	syncJsonTabsVisible();
 }
 
-QTextEdit *DetailWindow::addJsonTab(const QString &label, const QJsonDocument &doc)
+QTextEdit *DetailWindow::addTab(const QString &label, const QString &content, bool highlight, int index)
 {
 	QTextEdit *edit = new QTextEdit;
 	edit->setReadOnly(true);
 	// indentation only lines up in a fixed-width font, and wrapping it defeats the point
 	edit->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 	edit->setLineWrapMode(QTextEdit::NoWrap);
-	edit->setPlainText(QString::fromUtf8(doc.toJson(QJsonDocument::Indented)));
+	edit->setPlainText(content);
 	edit->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(edit, &QTextEdit::customContextMenuRequested, this, &DetailWindow::textEditContextMenu);
 
-	// parented to the document, so it goes away with the tab
-	new JsonHighlighter(edit->document(), edit->palette());
+	if (highlight) {
+		// parented to the document, so it goes away with the tab
+		new JsonHighlighter(edit->document(), edit->palette());
+	}
 
-	const int index = _jsonTabs->addTab(edit, label);
+	const int at = _jsonTabs->insertTab(index, edit, label);
 	// a row of "JSON 1", "JSON 2" tabs says nothing about what is in them
-	_jsonTabs->setTabToolTip(index, QString::fromUtf8(doc.toJson(QJsonDocument::Compact)).left(200));
+	_jsonTabs->setTabToolTip(at, content.simplified().left(200));
 
 	syncJsonTabsVisible();
 
 	return edit;
+}
+
+QTextEdit *DetailWindow::addJsonTab(const QString &label, const QJsonDocument &doc)
+{
+	// ahead of SOURCE, which stays the last tab however many are added after it
+	return addTab(label, QString::fromUtf8(doc.toJson(QJsonDocument::Indented)), true,
+		_sourceTab ? _jsonTabs->indexOf(_sourceTab) : -1);
+}
+
+void DetailWindow::addSourceTab(const QStringList &sources)
+{
+	if (sources.isEmpty()) return;
+
+	QStringList formatted;
+	bool anyJson = false;
+
+	for (const QString &source : sources)
+	{
+		const QJsonDocument doc = JsonScan::tryParse(source);
+		if (doc.isNull()) {
+			formatted.append(source);
+		} else {
+			// trimmed because toJson() ends in a newline, which would double up the blank
+			// line the join puts between one selected entry's source and the next
+			formatted.append(QString::fromUtf8(doc.toJson(QJsonDocument::Indented)).trimmed());
+			anyJson = true;
+		}
+	}
+
+	_sourceTab = addTab("SOURCE", formatted.join("\n\n"), anyJson, -1);
 }
 
 void DetailWindow::syncJsonTabsVisible()
