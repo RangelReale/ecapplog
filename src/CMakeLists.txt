@@ -3,6 +3,10 @@ set(SRCS
 	MainWindow.cpp
 	DetailWindow.h
 	DetailWindow.cpp
+	JsonScan.h
+	JsonScan.cpp
+	JsonHighlighter.h
+	JsonHighlighter.cpp
 	FindDialog.h
 	FindDialog.cpp
 	Highlight.h

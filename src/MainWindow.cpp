@@ -280,17 +280,26 @@ QTabWidget *MainWindow::createWindow()
 void MainWindow::logListDetail(QListView *logs)
 {
 	QStringList slist;
-	QStringList rslist;
 
+	// Oldest first: LogModel inserts the newest entry at row 0, so the selection has to be
+	// walked backwards to read in the order the entries happened.
 	QListIterator<QModelIndex> iter(logs->selectionModel()->selectedIndexes());
 	iter.toBack();
 	while (iter.hasPrevious()) {
 		auto index(iter.previous());
-		slist.append(index.data(Qt::DisplayRole).toString());
-		rslist.append(formatJSON(index.data(MODELROLE_SOURCE).toString()));
+
+		// Line and its own source stay together, and the source goes in exactly as received -
+		// DetailWindow pulls the JSON out of it into its own tabs, so pretty-printing it here
+		// would only make the two panes disagree about what the entry actually said.
+		QString entry(index.data(Qt::DisplayRole).toString());
+		const QString source(index.data(MODELROLE_SOURCE).toString());
+		if (!source.isEmpty())
+			entry.append("\n").append(source);
+
+		slist.append(entry);
 	}
 
-	DetailWindow *dwin = new DetailWindow(nullptr, slist.join("\n"), rslist.join("\n"));
+	DetailWindow *dwin = new DetailWindow(nullptr, slist.join("\n\n"));
 	dwin->show();
 }
 
@@ -1020,13 +1029,6 @@ void MainWindow::onNewFilter(const QString &filterName)
 void MainWindow::onFilterChanged(const QString &filterName)
 {
 
-}
-
-QString MainWindow::formatJSON(const QString &json)
-{
-	QJsonDocument doc = QJsonDocument::fromJson(json.toLocal8Bit());
-	if (doc.isNull()) return json;
-	return doc.toJson(QJsonDocument::Indented);
 }
 
 #ifdef ECAPPLOG_DEBUG_MENUS

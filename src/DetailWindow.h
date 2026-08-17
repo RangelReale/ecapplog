@@ -6,22 +6,27 @@
 
 #define NOMINMAX
 
-#include <QTextEdit>
 #include <QDialog>
 #include <QJsonDocument>
+
+class QSplitter;
+class QTabWidget;
+class QTextEdit;
 
 class DetailWindow : public QDialog
 {
 	Q_OBJECT
 public:
-	DetailWindow(QWidget *parent, QString message, QString source);
+	DetailWindow(QWidget *parent, const QString &text);
 public Q_SLOTS:
 	//void copyToClipboard();
 	void textEditContextMenu(const QPoint &point);
+	void jsonTabCloseRequested(int index);
 private:
-	void tryFormatJSON(const QString &text, QTextEdit *output);
-	QJsonDocument tryParseJSON(const QString &text);
+	QTextEdit *addJsonTab(const QString &label, const QJsonDocument &doc);
+	void syncJsonTabsVisible();
 
-	QTextEdit *_message;
-	QTextEdit *_source;
+	QSplitter  *_splitter;
+	QTextEdit  *_log;
+	QTabWidget *_jsonTabs;
 };

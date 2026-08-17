@@ -112,8 +112,6 @@ public Q_SLOTS:
 protected:
 	bool eventFilter(QObject *watched, QEvent *event) override;
 private:
-	QString formatJSON(const QString &json);
-
 	void onCmdLog(const QString& appName, const QJsonObject &jsonData);
 
 	QListView *currentLogView() const;
