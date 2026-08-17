@@ -1,0 +1,22 @@
+//
+// AppInfo.h
+//
+// Generated from AppInfo.h.in by configure_file. Do not edit the generated copy in the build
+// directory.
+//
+// The project information block in the top-level CMakeLists.txt is the single source of truth
+// for the version and the author details, and this is the only path by which any of it reaches
+// C++ - everything else it feeds (CPack, the release scripts, the macOS bundle plist, the Win32
+// VERSIONINFO block) consumes it from CMake directly.
+//
+// Deliberately not the same file as resources/resources.h.in: that one is generated only inside
+// the if (WIN32) branch of src/CMakeLists.txt, its include directory is only added on Windows,
+// and its macros are shaped for the .rc VERSIONINFO block rather than for C++.
+//
+
+#pragma once
+
+#define ECAPPLOG_VERSION				"@PROJECT_VERSION@"
+#define ECAPPLOG_AUTHOR_NAME			"@AUTHOR_NAME@"
+#define ECAPPLOG_AUTHOR_EMAIL			"@AUTHOR_EMAIL@"
+#define ECAPPLOG_URL					"@APP_URL@"

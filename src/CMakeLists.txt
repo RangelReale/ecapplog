@@ -33,6 +33,12 @@ if (UNIX AND NOT APPLE)
   LIST(APPEND LIB_LINK xcb)
 endif()
 
+# Outside the if (WIN32) below on purpose: this is the one generated header portable code reads,
+# so it has to exist on every platform. resources/resources.h.in is not a substitute - it is only
+# generated for Windows, and its macros are shaped for the .rc VERSIONINFO block.
+configure_file(AppInfo.h.in ${CMAKE_CURRENT_BINARY_DIR}/AppInfo.h @ONLY)
+list(APPEND SRCS ${CMAKE_CURRENT_BINARY_DIR}/AppInfo.h)
+
 if (WIN32)
 	set(ICON_FILE resources/ecapplog.ico)
 	# ecapplog.rc includes "resources.h" relative to its own directory first, so the header only
@@ -62,6 +68,10 @@ endif()
 add_library(ecapploglib STATIC ${SRCS})
 target_link_libraries(ecapploglib Qt5::Widgets Qt5::Network qtadvanceddocking)
 target_compile_features(ecapploglib PRIVATE cxx_std_17)
+# PUBLIC rather than PRIVATE so that AppInfo.h is reachable from main.cpp, which is compiled into
+# the executable targets and not into this library. Both of them link ecapploglib, so the usage
+# requirement carries the directory across.
+target_include_directories(ecapploglib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if (ECAPPLOG_WITH_DEBUG_MENUS)
 	target_compile_definitions(ecapploglib PRIVATE ECAPPLOG_DEBUG_MENUS)

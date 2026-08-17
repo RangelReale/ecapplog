@@ -1,5 +1,7 @@
 #include "MainWindow.h"
 #include "Config.h"
+#include "AppIcon.h"
+#include "AppInfo.h"
 #include "LogDelegate.h"
 #include "DetailWindow.h"
 #include "FindDialog.h"
@@ -9,6 +11,8 @@
 #include <QScreen>
 #include <QMenu>
 #include <QMessageBox>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QMenuBar>
 #include <QAction>
 #include <QActionGroup>
@@ -218,6 +222,29 @@ MainWindow::MainWindow(QWidget *parent) :
 	debugMenu->addAction("&Publish logs", this, &MainWindow::menuDebugPublishLogs);
 
 	menuBar()->addMenu(debugMenu);
+#endif
+
+	// menu: HELP
+	// AboutRole is what macOS acts on: Qt lifts the item out of whichever menu it was put in and
+	// into the application menu, where a Mac expects to find it. Set explicitly rather than left to
+	// the text heuristic, and set before the action reaches a menu, since the platform menu item is
+	// built at the moment it is added and does not pick the role up afterwards.
+	QAction *aboutAction = new QAction("&About ECAppLog", this);
+	aboutAction->setMenuRole(QAction::AboutRole);
+	connect(aboutAction, &QAction::triggered, this, &MainWindow::menuHelpAbout);
+#ifdef Q_OS_DARWIN
+	// Parented to Edit rather than to a Help menu of its own, which is not the arbitrary choice it
+	// looks like: Qt discards a menu once every one of its items has been merged away, and it does
+	// so *before* the merge, so an About item alone in a Help menu is dropped along with the menu
+	// and never reaches the application menu at all. Any menu with other items in it works, and the
+	// role - not the parent - is what decides where the item ends up, so Edit keeps its own
+	// contents and macOS still gets ECAppLog -> About ECAppLog.
+	editMenu->addAction(aboutAction);
+#else
+	QMenu *helpMenu = new QMenu("&Help", this);
+	helpMenu->addAction(aboutAction);
+
+	menuBar()->addMenu(helpMenu);
 #endif
 
 	// initialization
@@ -604,6 +631,87 @@ void MainWindow::menuFilterGroupBy()
 	QVariant groupBy = action->property(FILTERMENU_GROUPBY);
 	if (!filterName.isValid()) return;
 	_data.setFilterGroupBy(filterName.toString(), static_cast<Data_Filter_GroupBy>(groupBy.toInt()));
+}
+
+void MainWindow::menuHelpAbout()
+{
+	// The Qt version is two facts, not one: QT_VERSION_STR is what the binary was compiled
+	// against and qVersion() is what it actually loaded. They diverge whenever a deployed build
+	// picks up a different Qt than it was built with, which is worth being able to read off a bug
+	// report - so the running version is only spelled out when it disagrees.
+	QString qtVersion(QT_VERSION_STR);
+	if (qtVersion != QLatin1String(qVersion()))
+		qtVersion = tr("%1 (running %2)").arg(qtVersion, QString::fromLatin1(qVersion()));
+
+	// Rich text so the address and the URL are clickable. The two anchors are concatenated rather
+	// than built with arg(): each of them names its target twice, once in the href and once as the
+	// visible text, and a repeated place marker is a needless thing to depend on.
+	const QString email(ECAPPLOG_AUTHOR_EMAIL);
+	const QString url(ECAPPLOG_URL);
+	const QString emailLink = "<a href=\"mailto:" + email + "\">" + email + "</a>";
+	const QString urlLink = "<a href=\"" + url + "\">" + url + "</a>";
+
+	QString details;
+	details += QString("<p>%1</p>")
+		.arg(tr("A networked logging GUI, for programmers debugging code on a local computer."));
+	details += QString("<p>%1<br>%2</p>")
+		.arg(tr("Author: %1").arg(ECAPPLOG_AUTHOR_NAME), emailLink);
+	details += "<p>" + urlLink + "</p>";
+	details += QString("<p>%1</p>").arg(tr("Built with Qt %1").arg(qtVersion));
+
+	// Assembled by hand rather than handed to QMessageBox, which cannot be made to do this one.
+	// Its informative label is where the two anchors would live, and it is constructed without a
+	// parent and only adopted when the box is laid out - so it cannot be reached through
+	// findChildren() beforehand, and whatever link handling it is given at creation is what it
+	// keeps. QMessageBox::setTextInteractionFlags does not reach it either. A QDialog of our own
+	// is both shorter to reason about and the pattern FindDialog already uses.
+	QDialog about(this);
+	about.setWindowTitle(tr("About %1").arg(QApplication::applicationName()));
+
+	// The application artwork rather than a generic glyph. appIcon() is multi-resolution, so
+	// pixmap() picks the right master for the size asked for.
+	QLabel *iconLabel = new QLabel;
+	iconLabel->setPixmap(appIcon().pixmap(64, 64));
+
+	QLabel *titleLabel = new QLabel(QString("%1 %2")
+		.arg(QApplication::applicationName(), QString(ECAPPLOG_VERSION)));
+	QFont titleFont = titleLabel->font();
+	titleFont.setBold(true);
+	titleLabel->setFont(titleFont);
+
+	QLabel *detailsLabel = new QLabel(details);
+	detailsLabel->setTextFormat(Qt::RichText);
+	detailsLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	// Without this a click on an anchor only emits linkActivated, which nothing is connected to.
+	detailsLabel->setOpenExternalLinks(true);
+	detailsLabel->setWordWrap(true);
+	// Wide enough that the repository URL stays on one line; the description wraps to suit.
+	detailsLabel->setMinimumWidth(340);
+
+	QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
+	connect(buttons, &QDialogButtonBox::accepted, &about, &QDialog::accept);
+
+	// The icon column carries a stretch so the artwork stays beside the first line rather than
+	// centring itself against the whole text block.
+	QVBoxLayout *iconColumn = new QVBoxLayout;
+	iconColumn->addWidget(iconLabel);
+	iconColumn->addStretch();
+
+	QVBoxLayout *textColumn = new QVBoxLayout;
+	textColumn->addWidget(titleLabel);
+	textColumn->addWidget(detailsLabel);
+	textColumn->addStretch();
+
+	QHBoxLayout *body = new QHBoxLayout;
+	body->addLayout(iconColumn);
+	body->addSpacing(12);
+	body->addLayout(textColumn);
+
+	QVBoxLayout *layout = new QVBoxLayout(&about);
+	layout->addLayout(body);
+	layout->addWidget(buttons);
+
+	about.exec();
 }
 
 void MainWindow::refreshWindowTitle()

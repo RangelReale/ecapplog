@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "AppIcon.h"
+#include "AppInfo.h"
 
 #include <QApplication>
 #include <QStyleFactory>
@@ -10,6 +11,10 @@ int main(int argc, char *argv[])
 	app.setOrganizationName("RangelReale");
 	app.setOrganizationDomain("rangelreale.com");
 	app.setApplicationName("ECAppLog");
+	// Not needed by the About box, which reads the macro directly, but without this
+	// applicationVersion() is empty everywhere except macOS, where Qt happens to seed it from the
+	// bundle's CFBundleVersion.
+	app.setApplicationVersion(ECAPPLOG_VERSION);
 #ifndef Q_OS_DARWIN
 	// Set once here rather than per window: QWidget::windowIcon() falls back to the application
 	// icon, so this covers the main window, the dialogs, and every log view floated out into a

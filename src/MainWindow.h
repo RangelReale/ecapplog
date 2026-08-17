@@ -93,6 +93,7 @@ public Q_SLOTS:
 	void menuFilterNew();
 	void menuFilterClear();
 	void menuFilterGroupBy();
+	void menuHelpAbout();
 
 #ifdef ECAPPLOG_DEBUG_MENUS
 	void menuDebugPublishLogs();
