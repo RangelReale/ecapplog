@@ -4,7 +4,9 @@
 #include "JsonHighlighter.h"
 #include "JsonScan.h"
 
+#include <QApplication>
 #include <QFontDatabase>
+#include <QFontInfo>
 #include <QList>
 #include <QMenu>
 #include <QSplitter>
@@ -12,6 +14,28 @@
 #include <QTextCursor>
 #include <QTextEdit>
 #include <QVBoxLayout>
+
+namespace
+{
+	// The fixed-pitch family, at the size the rest of the app is running at.
+	//
+	// The size has to be set, not inherited: QFontDatabase hands out the system's idea of a code
+	// font, which is 11pt on macOS, while this app forces a 16pt default there - so the JSON came
+	// out visibly smaller than the raw pane directly above it in the same window. Taking the
+	// application font's size is also what puts these tabs under View -> Font size along with
+	// everything else; only the family is the system's to choose.
+	QFont jsonFont()
+	{
+		QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+
+		// QFontInfo resolves the size in use, where QFont::pointSize() reports -1 for a platform
+		// font specified in pixels - the same trap defaultFontSize() and menuViewFont() in
+		// MainWindow already work around.
+		font.setPointSize(QFontInfo(QApplication::font()).pointSize());
+
+		return font;
+	}
+}
 
 DetailWindow::DetailWindow(QWidget *parent, const QString &text, const QStringList &sources) :
 	QDialog(parent)
@@ -112,7 +136,7 @@ QTextEdit *DetailWindow::addTab(const QString &label, const QString &content, bo
 	QTextEdit *edit = new QTextEdit;
 	edit->setReadOnly(true);
 	// indentation only lines up in a fixed-width font, and wrapping it defeats the point
-	edit->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+	edit->setFont(jsonFont());
 	edit->setLineWrapMode(QTextEdit::NoWrap);
 	edit->setPlainText(content);
 	edit->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -177,6 +201,22 @@ void DetailWindow::addSourceTab(const QStringList &sources)
 		addTab(match.path.isEmpty() ? QString("SOURCE JSON %1").arg(++unnamed)
 				: QString("SOURCE %1").arg(match.path),
 			JsonFormat::indented(match.doc), true, -1);
+	}
+}
+
+void DetailWindow::changeEvent(QEvent *event)
+{
+	QDialog::changeEvent(event);
+
+	// View -> Font size reaches the widgets already on screen as an ApplicationFontChange, and
+	// the raw pane above picks it up by inheritance. The tabs cannot: they carry an explicit
+	// font, which is the whole point of them, and an explicit font is exactly what that event
+	// does not touch. Without this the two halves of one window drift apart in size.
+	if (event->type() == QEvent::ApplicationFontChange)
+	{
+		const QFont font = jsonFont();
+		for (int at = 0; at < _jsonTabs->count(); ++at)
+			_jsonTabs->widget(at)->setFont(font);
 	}
 }
 

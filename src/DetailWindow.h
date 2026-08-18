@@ -26,6 +26,8 @@ public:
 public Q_SLOTS:
 	//void copyToClipboard();
 	void textEditContextMenu(const QPoint &point);
+protected:
+	void changeEvent(QEvent *event) override;
 private:
 	QTextEdit *addTab(const QString &label, const QString &content, bool highlight, int index);
 	QTextEdit *addJsonTab(const QString &label, const QJsonDocument &doc);
