@@ -33,6 +33,7 @@ Right-clicking the tabs and logs shows context menus with more options.
  * Multiple windows and fiters
  * Slight variation of text color in each line to ease reading
  * Try parse JSON from text selection in detail window (even if escaped)
+ * Multi-line string values in the detail window's JSON are shown across lines, not as `\n` escapes
 
 ## Protocol
 

@@ -3,6 +3,8 @@ set(SRCS
 	MainWindow.cpp
 	DetailWindow.h
 	DetailWindow.cpp
+	JsonFormat.h
+	JsonFormat.cpp
 	JsonScan.h
 	JsonScan.cpp
 	JsonHighlighter.h

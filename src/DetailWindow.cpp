@@ -1,5 +1,6 @@
 #include "DetailWindow.h"
 
+#include "JsonFormat.h"
 #include "JsonHighlighter.h"
 #include "JsonScan.h"
 
@@ -135,7 +136,7 @@ QTextEdit *DetailWindow::addJsonTab(const QString &label, const QJsonDocument &d
 {
 	// Appended. The source group is built first and never moves, so a tab made by hand later - a
 	// "Selection" from the context menu - lands at the end, which is where the newest one belongs.
-	return addTab(label, QString::fromUtf8(doc.toJson(QJsonDocument::Indented)), true, -1);
+	return addTab(label, JsonFormat::indented(doc), true, -1);
 }
 
 void DetailWindow::addSourceTab(const QStringList &sources)
@@ -153,9 +154,9 @@ void DetailWindow::addSourceTab(const QStringList &sources)
 			formatted.append(source);
 			unparsed.append(source);
 		} else {
-			// trimmed because toJson() ends in a newline, which would double up the blank
+			// trimmed because the formatted text ends in a newline, which would double up the blank
 			// line the join puts between one selected entry's source and the next
-			formatted.append(QString::fromUtf8(doc.toJson(QJsonDocument::Indented)).trimmed());
+			formatted.append(JsonFormat::indented(doc).trimmed());
 			anyJson = true;
 		}
 	}
@@ -175,7 +176,7 @@ void DetailWindow::addSourceTab(const QStringList &sources)
 		// the same name and no way to tell which held which.
 		addTab(match.path.isEmpty() ? QString("SOURCE JSON %1").arg(++unnamed)
 				: QString("SOURCE %1").arg(match.path),
-			QString::fromUtf8(match.doc.toJson(QJsonDocument::Indented)), true, -1);
+			JsonFormat::indented(match.doc), true, -1);
 	}
 }
 
