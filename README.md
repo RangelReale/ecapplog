@@ -17,7 +17,13 @@ The released Mac package is signed, notarized, and built for Apple Silicon, and 
 
 The interface is based on `applications` containing `categories`. One tab will be created for each connected application, and inside these, one tab will created for each category.
 
-Two category tabs are created by the application itself, and always come first: `ALL`, when `View -> Group categories` is enabled, which shows every category of the application in a single list, and `ERROR`, which collects its error and warning logs. Both show the category each line came from beside the message. Grouping is an addition, so the category tabs go on receiving their own logs while it is enabled.
+Two category tabs are created by the application itself, and always come first: `ALL`, when `View -> Group categories` is enabled, which shows every category of the application in a single list, and `ERROR`, which collects its error and warning logs. Both show the category each line came from in the `Category` column. Grouping is an addition, so the category tabs go on receiving their own logs while it is enabled.
+
+Each log list has a header with a column per field: `Time`, `Priority`, `Application`,
+`Category`, `Message` and `Source`. The columns can be resized and reordered by dragging the
+header, and the layout is shared by every log list and remembered between runs. `Application`
+and `Category` only appear once a log arrives that has one, so an ordinary category tab shows
+four columns.
 
 Multiple windows can be created, and docked inside the main window or float outside it.
 
@@ -34,6 +40,7 @@ Right-clicking the tabs and logs shows context menus with more options.
  * Slight variation of text color in each line to ease reading
  * Try parse JSON from text selection in detail window (even if escaped)
  * Multi-line string values in the detail window's JSON are shown across lines, not as `\n` escapes
+ * Resizable, reorderable log columns, remembered between runs
 
 ## Protocol
 
@@ -83,8 +90,8 @@ This must be the first command sent after the connection is established. It sets
 
  Optional fields:
 
- * `source` [string]: sets the original source this log came from, for example, the JSON in the original format, or the raw Apache log line. This can be shown by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
- * `original_category` [string]: if set, one extra field will be shown on the log with this field. Use this to indicate this log was redirected from another category.
+ * `source` [string]: sets the original source this log came from, for example, the JSON in the original format, or the raw Apache log line. It is shown in the `Source` column, as a single line cut at 200 characters, and in full by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
+ * `original_category` [string]: if set, the log's `Category` column shows this. Use this to indicate this log was redirected from another category.
  * `extra_categories` [string array]: duplicate the log in more categories besides the main one.
  * `color` [string]: if set, use this foreground color instead of the priority default one. Format must be `#RRGGBB` (the `#` character is required).
  * `bgcolor` [string]: if set, use this background color. Format must be `#RRGGBB` (the `#` character is required).

@@ -12,7 +12,8 @@
 
 #include "DockManager.h"
 
-#include <QListView>
+#include <QTreeView>
+#include <QHeaderView>
 #include <QMainWindow>
 #include <QMenu>
 #include <QAction>
@@ -23,16 +24,18 @@
 #include <string>
 #include <map>
 
+class QTimer;
+
 class Main_Category : public QObject
 {
 	Q_OBJECT
 public:
-	Main_Category(const QString &name, QTabWidget *apptabs, QListView *logs, QLabel *logsamount) :
+	Main_Category(const QString &name, QTabWidget *apptabs, QTreeView *logs, QLabel *logsamount) :
 		name(name), apptabs(apptabs), logs(logs), logsamount(logsamount), header(nullptr) {}
 
 	QString name;
 	QTabWidget *apptabs;
-	QListView *logs;
+	QTreeView *logs;
 	QLabel *logsamount;
 	QLabel *header;		// retained so the font size can be kept in step with the log text
 };
@@ -49,7 +52,7 @@ public:
 	void addCategory(std::shared_ptr<Main_Category> category);
 	std::shared_ptr<Main_Category> findCategory(const QString &categoryName);
 	bool removeCategory(const QString &categoryName);
-	void applyFont(const QFont &headerFont);
+	void applyFont(const QFont &headerFont, double columnScale);
 	void updateLogViews();
 private:
 	typedef std::map<QString, std::shared_ptr<Main_Category> > categorylist_t;	
@@ -70,7 +73,7 @@ public Q_SLOTS:
 
     void onNewApplication(const QString &appName);
     void onDelApplication(const QString &appName);
-    void onNewCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
+    void onNewCategory(const QString &appName, const QString &categoryName, QAbstractItemModel *model);
     void onDelCategory(const QString &appName, const QString &categoryName);
 	void onLogAmount(const QString &appName, const QString &categoryName, int amount);
 	void onLogItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
@@ -78,7 +81,7 @@ public Q_SLOTS:
     void onFilterChanged(const QString &filterName);
 
 	QTabWidget *createWindow();
-	void logListDetail(QListView *logs);
+	void logListDetail(QTreeView *logs);
 
 	void menuEditClear();
 	void menuEditPause();
@@ -115,10 +118,20 @@ protected:
 private:
 	void onCmdLog(const QString& appName, const QJsonObject &jsonData);
 
-	QListView *currentLogView() const;
-	bool findInLogView(QListView *logs, bool backwards);
+	QTreeView *currentLogView() const;
+	bool findInLogView(QTreeView *logs, bool backwards);
 	void findAgain(bool backwards);
 	void clearFindHighlight();
+
+	// Puts a newly created log view into the flat, one-line-per-row shape the log list has always
+	// had, and gives it the header the columns are resized from.
+	void configureLogView(QTreeView *logs);
+	// Column widths and order. Every view shares one layout, so a category opened later joins the
+	// tabs already on screen instead of starting over.
+	void applyLogColumns(QTreeView *logs);
+	void saveLogColumns(QHeaderView *header);
+	// Hides the two alt columns until the view has an entry that carries them.
+	void refreshAltColumns(QTreeView *logs);
 
 	void refreshHighlightMenu();
 	void refreshLogViews();
@@ -132,12 +145,18 @@ private:
 	QString _findText;
 	bool _findCaseSensitive;
 	// QPointer: log views are destroyed whenever their category is closed or cleared
-	QPointer<QListView> _lastLogView;
+	QPointer<QTreeView> _lastLogView;
 	// The row the last search landed on. Kept even after its highlight is taken back, so a repeated
 	// search carries on from there instead of starting over.
-	QPointer<QListView> _findHighlightView;
+	QPointer<QTreeView> _findHighlightView;
 	QPersistentModelIndex _findHighlightIndex;
 	bool _findHighlightShown;
+
+	// The shared log column layout, as QHeaderView::saveState writes it, persisted under
+	// "log_columns". Held here as well as in QSettings because it is read once per new view and
+	// written on every pixel of a drag.
+	QByteArray _logColumnState;
+	QTimer *_logColumnSaveTimer;
 
 	// Words marked in every log list. Handed to each LogDelegate by pointer, so it must outlive
 	// the views, and it does: MainWindow owns them all.

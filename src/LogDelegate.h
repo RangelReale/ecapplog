@@ -10,6 +10,8 @@
 
 class Highlight;
 
+// Draws one cell of a log view. QItemDelegate rather than QStyledItemDelegate: paint() is built
+// out of the protected setOptions, drawBackground and drawFocus, which only this base has.
 class LogDelegate : public QItemDelegate
 {
 public:
@@ -21,6 +23,8 @@ public:
 private:
     void customDrawDisplay(QPainter *painter, const QStyleOptionViewItem &option,
         const QRect &rect, const QModelIndex &index) const;
+    QString cellText(const QStyleOptionViewItem &option, const QModelIndex &index, int width) const;
+    bool rowMatchesHighlight(const QModelIndex &index) const;
     // Both take any text, not just the message: the source field is drawn and measured through
     // them too, so it gets the same bold runs.
     void drawHighlighted(QPainter *painter, const QRect &rect, const QString &text) const;

@@ -208,9 +208,15 @@ one copy per matching filter. Things that are easy to get wrong there:
   queued or the rate is below 15/s, with a 1s timer (`checkExpiredLog`) flushing the rest.
   A newly created tab can therefore take up to a second to appear — that is not a bug.
 
-**`MainWindow`** (`MainWindow.h/.cpp`, ~1000 lines and most of the UI) — mirrors `Data`'s
-tree with `Main_Application` / `Main_Category` and one `QListView` per category. Menus are
+**`MainWindow`** (`MainWindow.h/.cpp`, ~1200 lines and most of the UI) — mirrors `Data`'s
+tree with `Main_Application` / `Main_Category` and one `QTreeView` per category. Menus are
 built inline in the constructor; there are no `.ui` files anywhere.
+
+The view is a `QTreeView` and not a `QListView` **because the user resizes the columns.**
+`configureLogView` flattens it — `setRootIsDecorated(false)`, `setItemsExpandable(false)`,
+`setIndentation(0)`, `setUniformRowHeights(true)` — so it looks and behaves like the list it
+replaced, and what it adds is the `QHeaderView`. Sorting is off and the sections are not
+clickable: the model is a stream in arrival order and has nothing else to sort by.
 
 - Docking is `ads::CDockManager`, and log views can be floated out into genuine top-level
   windows. Two consequences: keyboard shortcuts must use `Qt::ApplicationShortcut` (helpers
@@ -219,12 +225,36 @@ built inline in the constructor; there are no `.ui` files anywhere.
 - Category tab order comes from `categoryRank()`: `ALL`, then `ERROR`, then other
   all-uppercase categories, then the rest. A new tab is inserted ahead of the first
   higher-ranked tab, with the rank read back from the tab text so tabs moved by hand survive.
-- `LogDelegate` paints every row and does the `Highlight` word matching. Its `sizeHint` must
-  stay in step with what `paint` draws, or the horizontal scrollbar stops short of the text —
-  which is why highlight-word changes go through `doItemsLayout` rather than a viewport
-  repaint.
-- `LogModel` inserts the newest entry at row 0. Fields are exposed through the
-  `MODELROLE_*` roles in `LogModel.h`.
+- **Selection is `SelectRows`, so read `selectedRows()` and never `selectedIndexes()`** —
+  there are six columns, and `selectedIndexes` returns one index per cell, which silently
+  turns every copied or detailed entry into six copies of itself. For the same reason the
+  find match has to spell out `QItemSelectionModel::Rows`: it goes round the view straight to
+  the selection model (see the comment in `findInLogView` for why), and that is where a view
+  would otherwise have added its own selection behaviour.
+- `LogDelegate` paints **one cell** and does the `Highlight` word matching. The highlight
+  background is decided from the whole entry (`rowMatchesHighlight` reads `MODELROLE_MESSAGE`
+  and `MODELROLE_SOURCE`) rather than from the cell, so the band reads as one row; the bold
+  runs are applied only to the message and source columns.
+- **Column widths belong to the header, not to `sizeHint`.** This is the part that used to be
+  hard: the delegate drew all six fields into one cell at offsets it computed itself, picked
+  the message column from the longest message the tab had ever held, and had to keep
+  `sizeHint` in step with `paint` or the horizontal scrollbar stopped short of the text. None
+  of that exists now. `sizeHint` only feeds the starting widths and *resize to contents*,
+  which is why highlight-word changes are a plain `viewport()->update()`.
+- The layout is shared and persisted: `applyLogColumns` restores `log_columns` into every new
+  view, `saveLogColumns` writes it back debounced behind a 500 ms timer because
+  `sectionResized` fires once per pixel of a drag. A font-size change scales every section by
+  the ratio of the point sizes — the widths are pixels, and the proportions are the user's.
+- **`APP` and `CATEGORY` are hidden until an entry carries them** (`refreshAltColumns`, driven
+  by `LogModel::altColumnsChanged`). Applied *after* `applyLogColumns`, because
+  `QHeaderView::saveState` records which sections were hidden and a layout captured from a
+  plain category tab would otherwise keep them hidden in a filter tab that needs them.
+- `LogModel` is a `QAbstractTableModel`; it inserts the newest entry at row 0. Only
+  `Qt::DisplayRole` is column-aware — every `MODELROLE_*` describes the *entry*, so
+  `index(row, 0)` still identifies one, which is what Find, *Copy source* and `DetailWindow`
+  rely on. `MODELROLE_ROWTEXT` is the whole entry as one line, which `Qt::DisplayRole` used to
+  be. Per-column alignment and the italic of the two alt fields come from the model's
+  `Qt::TextAlignmentRole` and `Qt::FontRole`, which `QItemDelegate::setOptions` applies.
 
 ## Conventions
 
@@ -234,7 +264,8 @@ density rather than narrating what a line does.
 
 Menu text uses `&` mnemonics, so a literal `&` in dynamic text must be doubled (see
 `refreshHighlightMenu`). Settings go through `QSettings` under `com.rangelreale.ECAppLog`,
-and only `group_categories` and `font_size` are persisted. macOS-only deviations, both in
+and only `group_categories`, `font_size` and `log_columns` (the shared log column layout, as
+`QHeaderView::saveState` writes it) are persisted. macOS-only deviations, both in
 `main.cpp` / `MainWindow`: the Fusion style is forced (to get scrollable tabs) and the
 default font size is overridden to 16pt.
 

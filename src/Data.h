@@ -13,7 +13,7 @@
 #include <QString>
 #include <QJsonObject>
 #include <QDateTime>
-#include <QAbstractListModel>
+#include <QAbstractItemModel>
 #include <QStringList>
 #include <QTimer>
 #include <QElapsedTimer>
@@ -155,7 +155,7 @@ public:
 signals:
     void newApplication(const QString &appName);
     void delApplication(const QString &appName);
-    void newCategory(const QString &appName, const QString &categoryName, QAbstractListModel *model);
+    void newCategory(const QString &appName, const QString &categoryName, QAbstractItemModel *model);
     void delCategory(const QString &appName, const QString &categoryName);
     void logAmount(const QString &appName, const QString &categoryName, int amount);
     void logItemsPerSecond(const QString& appName, const QString& categoryName, double itemsPerSecond);
