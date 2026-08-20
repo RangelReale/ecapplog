@@ -2,6 +2,8 @@
 #include "LogModel.h"
 #include "Config.h"
 #include "Highlight.h"
+#include "JsonScan.h"
+#include "JsonFormat.h"
 
 #include <QPainter>
 #include <QStyle>
@@ -12,6 +14,8 @@
 #include <QHelpEvent>
 #include <QAbstractItemView>
 #include <QWidget>
+#include <QTextDocument>
+#include <QJsonDocument>
 
 // Background of a line holding one of the Edit -> Highlight words. It has to stay light: the
 // message text keeps its priority colour (see LogModelItem::calcPriorityColor), and those colours
@@ -45,6 +49,44 @@ static QString oneLine(const QString &text, int column)
     QString flat(text);
     flat.replace(newlines, QStringLiteral(" "));
     return flat;
+}
+
+// How many lines of a formatted payload a tooltip is worth. A tooltip is a glance - the detail
+// window is where a payload is read - and a large object would otherwise make one taller than the
+// screen, which Qt clips at the bottom with nothing to say that it did.
+#define TOOLTIP_MAX_LINES	40
+
+// The value a tooltip shows. Reading a payload on hover is only quicker than opening the detail
+// window if a glance is enough, and a glance at an object written on one line is not - so JSON is
+// indented here through the same JsonScan::tryParse and JsonFormat::indented pair the detail
+// window's SOURCE tab uses, and the two can never disagree about what a value looks like. Passing
+// the field through verbatim, which is what this used to do, meant a payload only ever appeared
+// indented when the sending program had indented it itself.
+//
+// The indented text goes out as preformatted rich text, and that is what keeps the indentation: a
+// tooltip lays plain text out as flowed HTML, so leading spaces would collapse and the shape that
+// makes a payload readable is exactly what would be lost. Converting rather than concatenating
+// escapes the text on the way, so a string value holding markup cannot be read as markup.
+//
+// Anything that does not parse is passed through untouched. One long line reads better wrapped
+// than boxed, and preformatted text does not wrap.
+static QString tipText(const QString &raw)
+{
+    const QJsonDocument doc = JsonScan::tryParse(raw);
+    if (doc.isNull()) return raw;
+
+    QString text = JsonFormat::indented(doc).trimmed();
+
+    const QStringList lines = text.split(QLatin1Char('\n'));
+    if (lines.size() > TOOLTIP_MAX_LINES)
+    {
+        const int hidden = lines.size() - TOOLTIP_MAX_LINES;
+        text = lines.mid(0, TOOLTIP_MAX_LINES).join(QLatin1Char('\n'))
+            + QString("\n\n... %1 more line%2 - open Details to read it whole")
+                .arg(hidden).arg(hidden == 1 ? "" : "s");
+    }
+
+    return Qt::convertFromPlainText(text, Qt::WhiteSpacePre);
 }
 
 // Breathing room between a cell and its column dividers, matching what the style leaves around
@@ -301,8 +343,9 @@ bool LogDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view,
     if (!text.isEmpty() && highlightedWidth(opt.font, text) > available)
     {
         // The raw value, not the flattened one: a tooltip is free to be several lines, and a
-        // formatted payload is far easier to read with its own line breaks left in.
-        QToolTip::showText(event->globalPos(), index.data(Qt::DisplayRole).toString(), view);
+        // payload is far easier to read with its structure left in - indented by tipText if it is
+        // JSON, and with whatever line breaks it arrived with if it is not.
+        QToolTip::showText(event->globalPos(), tipText(index.data(Qt::DisplayRole).toString()), view);
         return true;
     }
 
