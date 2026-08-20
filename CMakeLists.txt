@@ -140,7 +140,7 @@ if (WIN32)
     set(CPACK_NSIS_PACKAGE_NAME ${APP_NAME})
     set(CPACK_NSIS_DISPLAY_NAME ${APP_NAME})
     set(CPACK_NSIS_URL_INFO_ABOUT ${APP_URL})
-    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\ecapplog.exe")
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\ecapplog.exe")
     set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/src/resources/ecapplog.ico")
     set(CPACK_NSIS_CREATE_ICONS_EXTRA
         "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${APP_NAME}.lnk' '$INSTDIR\\\\bin\\\\${APP_NAME}.exe'")
