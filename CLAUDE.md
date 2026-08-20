@@ -235,16 +235,44 @@ clickable: the model is a stream in arrival order and has nothing else to sort b
   background is decided from the whole entry (`rowMatchesHighlight` reads `MODELROLE_MESSAGE`
   and `MODELROLE_SOURCE`) rather than from the cell, so the band reads as one row; the bold
   runs are applied only to the message and source columns.
+- **Nothing is cut to a length.** Because a column is resizable, how much of a field shows is
+  the width the user gave it and nothing else: `oneLine` flattens a value to one row's worth
+  (`simplified()` for the source, line breaks only for the message, so a program's own space
+  alignment survives) and the elide is purely a pixel fit. There was a `SOURCE_MAX_CHARS 200`
+  character cut here when the row was a single cell — don't reintroduce that shape of fix.
+  Flatten in `oneLine` rather than passing draw flags down, so the elide, the highlight ranges,
+  the tooltip test and `sizeHint` all measure the string that actually reaches the screen. **A
+  multi-line value left unflattened does not overflow, it re-centres:** `drawText` lays the
+  newline out as another line and `AlignVCenter` centres the block, so a three-line message
+  draws its *middle* line in the row and clips the first and third away.
+- **The elide has to measure the bold face** (`elideHighlighted`). `QFontMetrics::elidedText`
+  measures everything plain, but `drawHighlighted` draws matched runs bold — so a line holding
+  a highlight word used to come out wider than the budget it was elided to and got clipped
+  mid-glyph past its own ellipsis. Exact answer needs a binary search over the prefix, bounded
+  above by the plain fit; the no-match fast path is the common one and keeps it cheap.
 - **Column widths belong to the header, not to `sizeHint`.** This is the part that used to be
   hard: the delegate drew all six fields into one cell at offsets it computed itself, picked
   the message column from the longest message the tab had ever held, and had to keep
   `sizeHint` in step with `paint` or the horizontal scrollbar stopped short of the text. None
-  of that exists now. `sizeHint` only feeds the starting widths and *resize to contents*,
-  which is why highlight-word changes are a plain `viewport()->update()`.
+  of that exists now — `applyLogColumns` sizes a new header itself and never asks the delegate,
+  so `sizeHint`'s width is *only* double-click *resize to contents* (its height is the row
+  height). That is why highlight-word changes are a plain `viewport()->update()`. It is capped
+  at the window width, because without the old character cut the honest width of a cell holding
+  a formatted payload is tens of thousands of pixels, and the saved layout would remember it.
 - The layout is shared and persisted: `applyLogColumns` restores `log_columns` into every new
   view, `saveLogColumns` writes it back debounced behind a 500 ms timer because
   `sectionResized` fires once per pixel of a drag. A font-size change scales every section by
   the ratio of the point sizes — the widths are pixels, and the proportions are the user's.
+- **First-run widths measure, then divide** (`applyLogColumns`): `TIME` and `PRIORITY` from the
+  widest text they can hold, then `MESSAGE` and `SOURCE` split what is left of the *window*
+  width 3:2. The view's own viewport is useless there — it is not in its dock yet, so it still
+  holds a default size. Giving the two text columns a blind character count is what made the
+  message column too wide: 80 characters of a 16pt font is ~720px, so the two of them asked for
+  1440 of a 1280px window and the source started off screen behind a scrollbar.
+- **A saved `log_columns` completely masks those defaults**, and you do not have to have dragged
+  anything for one to exist — `refreshAltColumns` and `applyFont` both call `resizeSection`,
+  which emits `sectionResized`, which saves. So when changing a starting width, verify with
+  `defaults delete com.rangelreale.ECAppLog log_columns` first or you are testing nothing.
 - **`APP` and `CATEGORY` are hidden until an entry carries them** (`refreshAltColumns`, driven
   by `LogModel::altColumnsChanged`). Applied *after* `applyLogColumns`, because
   `QHeaderView::saveState` records which sections were hidden and a layout captured from a

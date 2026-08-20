@@ -90,7 +90,7 @@ This must be the first command sent after the connection is established. It sets
 
  Optional fields:
 
- * `source` [string]: sets the original source this log came from, for example, the JSON in the original format, or the raw Apache log line. It is shown in the `Source` column, as a single line cut at 200 characters, and in full by right-clicking a log and selecting `Details`. This field isn't parsed, besides indenting JSON if it is detected as such.
+ * `source` [string]: sets the original source this log came from, for example, the JSON in the original format, or the raw Apache log line. It is shown in the `Source` column as a single line, whitespace collapsed, cut only where the column is too narrow for it - widen the column, hover the cell for the whole value, or right-click a log and select `Details` to read it with its own line breaks. This field isn't parsed, besides indenting JSON if it is detected as such.
  * `original_category` [string]: if set, the log's `Category` column shows this. Use this to indicate this log was redirected from another category.
  * `extra_categories` [string array]: duplicate the log in more categories besides the main one.
  * `color` [string]: if set, use this foreground color instead of the priority default one. Format must be `#RRGGBB` (the `#` character is required).

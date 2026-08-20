@@ -30,6 +30,7 @@
 #include <QTimer>
 #include <QEvent>
 #include <QFontInfo>
+#include <QStyle>
 #ifdef ECAPPLOG_DEBUG_MENUS
 #include <QRandomGenerator>
 #endif
@@ -48,12 +49,22 @@
 #define HEADER_FONT_OFFSET		4
 
 // Starting widths for a log view whose columns have never been dragged. ALT_COLUMN_WIDTH is the
-// floor the two alt fields were drawn at when the row was a single cell; MESSAGE_COLUMN_CHARS, in
-// characters of the log font, is the middle of the three widths the message used to step between
-// depending on the longest line the tab had held. Both only apply on a first run - after that the
-// layout is the one saved under "log_columns".
+// floor the two alt fields were drawn at when the row was a single cell. Both only apply on a
+// first run - after that the layout is the one saved under "log_columns".
 #define ALT_COLUMN_WIDTH		150
-#define MESSAGE_COLUMN_CHARS	80
+
+// The message and the source split whatever the window has left once the two fixed columns are
+// measured, in this ratio - the message is the field read on every line, the source the one
+// glanced at. TEXT_COLUMN_MIN_CHARS, in characters of the log font, is the floor either of them
+// will be given no matter how narrow the window is: a starting width small enough to be invisible
+// is worse than a horizontal scrollbar, because a column has to be found before it can be dragged.
+//
+// Giving each of them a blind character count instead is what made the message column too wide to
+// begin with. 80 characters of a 16pt font is around 720px, so the two of them alone asked for
+// 1440 of a 1280px window and the source started off screen behind a scrollbar.
+#define TEXT_COLUMN_MESSAGE_SHARE	3
+#define TEXT_COLUMN_SOURCE_SHARE	2
+#define TEXT_COLUMN_MIN_CHARS		24
 
 namespace {
 
@@ -1080,19 +1091,36 @@ void MainWindow::applyLogColumns(QTreeView *logs)
 	// simply overran into the next one, where a column elides instead, and a timestamp cut short
 	// to "2026-08-20 09:02:20.4..." is the one thing this whole change exists to stop happening.
 	// Digits are tabular in the fonts these platforms default to, so the zeroes measure true.
-	//
-	// The two text fields get MESSAGE_COLUMN_CHARS, the middle of the three widths the message
-	// column used to step between depending on the longest line its tab had held.
 	const QFontMetrics metrics(logs->font());
 	const int padding = metrics.horizontalAdvance("XX");	// what a cell leaves at either edge
-	header->resizeSection(LOGCOL_TIME,
-		metrics.horizontalAdvance("0000-00-00 00:00:00.000") + padding);
-	header->resizeSection(LOGCOL_PRIORITY,
-		metrics.horizontalAdvance(QString("[%1]").arg(Priority::PRIO_INFORMATION)) + padding);
+	const int timeWidth = metrics.horizontalAdvance("0000-00-00 00:00:00.000") + padding;
+	const int priorityWidth =
+		metrics.horizontalAdvance(QString("[%1]").arg(Priority::PRIO_INFORMATION)) + padding;
+
+	header->resizeSection(LOGCOL_TIME, timeWidth);
+	header->resizeSection(LOGCOL_PRIORITY, priorityWidth);
 	header->resizeSection(LOGCOL_APP, ALT_COLUMN_WIDTH);
 	header->resizeSection(LOGCOL_CATEGORY, ALT_COLUMN_WIDTH);
-	header->resizeSection(LOGCOL_MESSAGE, metrics.averageCharWidth() * MESSAGE_COLUMN_CHARS);
-	header->resizeSection(LOGCOL_SOURCE, metrics.averageCharWidth() * MESSAGE_COLUMN_CHARS);
+
+	// What is left over goes to the message and the source. The view's own viewport is no use for
+	// this - it is not in its dock yet, let alone shown, so it still holds a default size - and the
+	// window it is about to appear in is the only real width available. Neither alt column is
+	// counted: refreshAltColumns is about to hide both in every tab that has no such field, which
+	// is the tab this width has to look right in.
+	//
+	// Approximate by design. Landing a few pixels either side of the viewport edge costs a
+	// scrollbar or a strip of empty header, and both are things the user fixes by dragging once -
+	// which is then the layout every later tab starts from.
+	const int furniture = style()->pixelMetric(QStyle::PM_ScrollBarExtent)
+		+ (style()->pixelMetric(QStyle::PM_LayoutLeftMargin) * 2);
+	const int remaining = qMax(0, width() - furniture - timeWidth - priorityWidth);
+	const int shares = TEXT_COLUMN_MESSAGE_SHARE + TEXT_COLUMN_SOURCE_SHARE;
+	const int floorWidth = metrics.averageCharWidth() * TEXT_COLUMN_MIN_CHARS;
+
+	header->resizeSection(LOGCOL_MESSAGE,
+		qMax(floorWidth, remaining * TEXT_COLUMN_MESSAGE_SHARE / shares));
+	header->resizeSection(LOGCOL_SOURCE,
+		qMax(floorWidth, remaining * TEXT_COLUMN_SOURCE_SHARE / shares));
 }
 
 void MainWindow::saveLogColumns(QHeaderView *header)

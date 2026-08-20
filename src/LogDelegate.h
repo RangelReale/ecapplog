@@ -7,6 +7,7 @@
 #define NOMINMAX
 
 #include <QItemDelegate>
+#include <QFontMetrics>
 
 class Highlight;
 
@@ -20,6 +21,10 @@ public:
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    // Shows the whole field when the column is too narrow for it. Non-const and public because
+    // that is how QAbstractItemDelegate declares it and the view calls it through the base.
+    bool helpEvent(QHelpEvent *event, QAbstractItemView *view,
+        const QStyleOptionViewItem &option, const QModelIndex &index) override;
 private:
     void customDrawDisplay(QPainter *painter, const QStyleOptionViewItem &option,
         const QRect &rect, const QModelIndex &index) const;
@@ -29,6 +34,8 @@ private:
     // them too, so it gets the same bold runs.
     void drawHighlighted(QPainter *painter, const QRect &rect, const QString &text) const;
     int highlightedWidth(const QFont &font, const QString &text) const;
+    QString elideHighlighted(const QFontMetrics &metrics, const QFont &font, const QString &text,
+        int width) const;
 
     const Highlight *_highlight;
 };

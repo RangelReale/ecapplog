@@ -7,27 +7,44 @@
 #include <QStyle>
 #include <QApplication>
 #include <QFontMetrics>
+#include <QRegularExpression>
+#include <QToolTip>
+#include <QHelpEvent>
+#include <QAbstractItemView>
+#include <QWidget>
 
 // Background of a line holding one of the Edit -> Highlight words. It has to stay light: the
 // message text keeps its priority colour (see LogModelItem::calcPriorityColor), and those colours
 // are chosen to read against a light background.
 #define HIGHLIGHT_BG_COLOR	QColor(255, 236, 160)
 
-// How much of the source a row draws. The field is not bounded at the sending end and a formatted
-// payload is usually multi-line, while a row is one line of font height - so the newlines would be
-// drawn past the bottom of it and clipped. It is whole in the detail window, one double-click
-// away, and MODELROLE_SOURCE still carries all of it, so "Copy source to clipboard" and Find are
-// unaffected.
-#define SOURCE_MAX_CHARS	200
-
-// The source as a row draws it. simplified() first, then the cut, the same order DetailWindow uses
-// for a tab tooltip.
-static QString elideSource(const QString &source)
+// A field as one row's worth of text. Nothing is cut here: a column is resizable, so how much of a
+// field is visible is the width the user gave it, and there is no length at which the rest of the
+// value stops being theirs to look at. This only flattens - a row is one line of font height, and
+// QPainter::drawText lays an embedded newline out as a further line, which AlignVCenter then
+// centres as a block. That is what made a three-line message draw its middle line inside the row
+// and clip the first and third away entirely.
+//
+// Flattening the string here rather than passing draw flags down means the elide, the highlight
+// ranges, the tooltip test and sizeHint all measure the one string that reaches the screen.
+static QString oneLine(const QString &text, int column)
 {
-    const QString oneLine = source.simplified();
-    if (oneLine.length() <= SOURCE_MAX_CHARS) return oneLine;
+    // The source is simplified() outright. It is usually a formatted payload whose indentation is
+    // there to be read down the page, and on a single line it is nothing but runs of spaces.
+    if (column == LOGCOL_SOURCE) return text.simplified();
 
-    return oneLine.left(SOURCE_MAX_CHARS) + QChar(0x2026);
+    // A message only loses its line breaks. A run of spaces in a message is usually the sending
+    // program lining its own output up, and collapsing those would change how every existing line
+    // reads for the sake of the few that are multi-line.
+    if (!text.contains(QLatin1Char('\n')) && !text.contains(QLatin1Char('\r'))) return text;
+
+    // A run rather than one character at a time, so a CRLF - or a blank line inside a stack trace -
+    // does not become two or three spaces where a reader expects one.
+    static const QRegularExpression newlines(QStringLiteral("[\\r\\n]+"));
+
+    QString flat(text);
+    flat.replace(newlines, QStringLiteral(" "));
+    return flat;
 }
 
 // Breathing room between a cell and its column dividers, matching what the style leaves around
@@ -113,14 +130,44 @@ void LogDelegate::customDrawDisplay(QPainter *painter, const QStyleOptionViewIte
 QString LogDelegate::cellText(const QStyleOptionViewItem &option, const QModelIndex &index,
     int width) const
 {
-    QString text = index.data(Qt::DisplayRole).toString();
+    const QString text = oneLine(index.data(Qt::DisplayRole).toString(), index.column());
 
-    // Deliberately only the source, not the message. A run of spaces in a message is usually the
-    // sending program lining its own output up, and collapsing those would change how every
-    // existing line reads for the sake of the few that are multi-line.
-    if (index.column() == LOGCOL_SOURCE) text = elideSource(text);
+    return elideHighlighted(option.fontMetrics, option.font, text, width);
+}
 
-    return option.fontMetrics.elidedText(text, Qt::ElideRight, width);
+// Elides to the width the line is actually going to be drawn at. QFontMetrics::elidedText measures
+// every character in the plain face, but drawHighlighted puts the matched runs in bold - so a line
+// holding a highlight word came out wider than the budget it was elided to, and the tail past the
+// ellipsis was clipped mid-glyph against the column divider instead.
+QString LogDelegate::elideHighlighted(const QFontMetrics &metrics, const QFont &font,
+    const QString &text, int width) const
+{
+    // No highlight word in this line - which is the usual case, and the case where the plain
+    // metrics are already exact.
+    if (!_highlight || _highlight->matchRanges(text).isEmpty())
+        return metrics.elidedText(text, Qt::ElideRight, width);
+
+    if (highlightedWidth(font, text) <= width) return text;
+
+    const QString ellipsis(QChar(0x2026));
+    const int ellipsisWidth = metrics.horizontalAdvance(ellipsis);
+    if (ellipsisWidth > width) return QString();
+
+    // Binary search the longest prefix that fits once the ellipsis is on the end. A prefix's width
+    // is not proportional to its length - a bold run inside it costs extra - so there is nothing to
+    // solve for directly. The plain fit bounds the search from above: bold is the wider face, so
+    // the bold-aware answer can never be the longer of the two.
+    int lo = 0;
+    int hi = qMax(0, metrics.elidedText(text, Qt::ElideRight, width).length() - 1);
+
+    while (lo < hi)
+    {
+        const int mid = (lo + hi + 1) / 2;
+        if (highlightedWidth(font, text.left(mid)) + ellipsisWidth <= width) lo = mid;
+        else hi = mid - 1;
+    }
+
+    return text.left(lo) + ellipsis;
 }
 
 // Whether the entry this cell belongs to holds a highlight word anywhere. Read from the raw
@@ -206,15 +253,59 @@ int LogDelegate::highlightedWidth(const QFont &font, const QString &text) const
 
 // What one cell would like to be. Unlike the single-cell row this replaced, nothing here decides
 // where a field is drawn - the header owns that, and the horizontal scrollbar is sized from the
-// header - so this only feeds the initial widths and "resize to contents" on a divider.
+// header. The starting widths do not come through here either: applyLogColumns sizes a new header
+// itself and never asks the delegate. So the width below is only ever "resize to contents" on a
+// double-clicked divider, and the height is the row height, via setUniformRowHeights.
 QSize LogDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     // setOptions again: the alt columns are italic, and measuring them with the upright font would
     // size their section slightly short.
     QStyleOptionViewItem opt = setOptions(index, option);
 
-    QString text = index.data(Qt::DisplayRole).toString();
-    if (index.column() == LOGCOL_SOURCE) text = elideSource(text);
+    const QString text = oneLine(index.data(Qt::DisplayRole).toString(), index.column());
+    int width = highlightedWidth(opt.font, text) + (cellMargin() * 2);
 
-    return QSize(highlightedWidth(opt.font, text) + (cellMargin() * 2), opt.fontMetrics.height());
+    // A ceiling on the ask, not a cut to the text. Since the source is no longer shortened to a
+    // character count, the honest width of a cell holding a formatted payload can be tens of
+    // thousands of pixels, and a double-click on the divider would hand back a section that far
+    // out - which the user then has to drag all the way back, and which the saved layout would
+    // remember for every tab opened afterwards. A column wider than the window it lives in shows
+    // no more of a line than one the width of the window, so that is where the ask stops. Dragging
+    // past it by hand is still allowed; nothing here clamps a width the user chose.
+    if (option.widget && option.widget->window())
+        width = qMin(width, option.widget->window()->width());
+
+    return QSize(width, opt.fontMetrics.height());
+}
+
+// The full value behind a cell, shown only when the cell is too narrow to hold it. Without this an
+// elided field has to be dragged wider or opened in the detail window to be read at all, and the
+// source - the field most likely to outrun its column - is the one it is least convenient to open.
+//
+// Deliberately not a Qt::ToolTipRole on the model: whether a cell is elided is a question about the
+// column width, which the model has no business knowing, and a tooltip on every cell the user
+// happens to rest on would be noise on a list this dense.
+bool LogDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view,
+    const QStyleOptionViewItem &option, const QModelIndex &index)
+{
+    if (!event || !view || event->type() != QEvent::ToolTip || !index.isValid())
+        return QItemDelegate::helpEvent(event, view, option, index);
+
+    QStyleOptionViewItem opt = setOptions(index, option);
+
+    // The same string, measured the same way, against the same rect paint uses - so the tooltip
+    // appears exactly when there is an ellipsis on screen and not one row sooner.
+    const QString text = oneLine(index.data(Qt::DisplayRole).toString(), index.column());
+    const int available = option.rect.adjusted(cellMargin(), 0, -cellMargin(), 0).width();
+
+    if (!text.isEmpty() && highlightedWidth(opt.font, text) > available)
+    {
+        // The raw value, not the flattened one: a tooltip is free to be several lines, and a
+        // formatted payload is far easier to read with its own line breaks left in.
+        QToolTip::showText(event->globalPos(), index.data(Qt::DisplayRole).toString(), view);
+        return true;
+    }
+
+    QToolTip::hideText();
+    return false;
 }
